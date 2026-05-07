@@ -40,8 +40,9 @@ TDEE: ${tdee} kcal/day | BMI: ${profile.bmi} | Est. body fat: ${profile.fatPct}%
 ## Program
 Goal type: ${goals.goalType || 'weight loss'} | Duration: ${goals.durationWeeks} weeks | Start: ${goals.startDate}
 Break weeks: ${goals.breakWeeks?.length ? goals.breakWeeks.join(', ') : 'none'} | Committed workouts/week: ${goals.workoutsPerWeek}
+Break week rules: ~+${Math.round((goals.deficit ?? 0) / 2)} kcal/day surplus (target ${breakCal} kcal) | ${breakWorkouts} workout(s)/week
 Target weight: ${goals.targetWeight}kg | Target waist: ${goals.targetWaist}cm | Target fat%: ${goals.targetFat || 'n/a'}%
-${isBreakWeek ? `\n⚠️ This is a break week. Adjusted targets: ~${breakCal} kcal/day (small surplus for recovery) | ${breakWorkouts} workout(s) this week. The user should still log food and activity normally.` : ''}
+${isBreakWeek ? `\n⚠️ Currently in break week ${currentWeek}. The user should still log food and activity normally.` : ''}
 ## Daily targets
 Calories: ${isBreakWeek ? breakCal : n.targetCal} kcal | Protein: ${n.protein}g | Carbs: ${n.carbs}g | Fat: ${n.fat}g | Fiber: ${n.fiber}g | Water: ${n.water}L
 ${isBreakWeek ? `Calorie surplus: +${Math.round((goals.deficit ?? 0) / 2)} kcal/day vs TDEE (break week recovery)` : `Calorie deficit: ${goals.deficit} kcal/day vs TDEE`}
