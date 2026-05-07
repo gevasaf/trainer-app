@@ -436,7 +436,7 @@ function SetupFlow({onComplete,t,lang,toggleLang}){
       <div style={{width:"100%",maxWidth:540,flexShrink:0,padding:"24px 16px 0"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
           <div><div style={{fontSize:22,fontWeight:700,color:CLR.purple}}>{"💪 "+t.setup}</div>
-            <div style={{fontSize:12,color:CLR.muted,marginTop:2}}>{"Step "+step+" of 2"}</div></div>
+            <div style={{fontSize:12,color:CLR.muted,marginTop:2,display:"flex",gap:6,alignItems:"center"}}><span>{"Step "+step+" of 2"}</span><span style={{opacity:0.4}}>·</span><span style={{opacity:0.5}}>{"v"+__APP_VERSION__}</span></div></div>
           <button onClick={toggleLang} style={{background:CLR.card,border:"1px solid "+CLR.border,color:CLR.muted,borderRadius:8,padding:"6px 14px",cursor:"pointer",fontSize:13}}>{lang==="en"?"עב":"EN"}</button>
         </div>
         <div style={{display:"flex",gap:8,marginBottom:16}}>
