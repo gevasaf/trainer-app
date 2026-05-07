@@ -24,7 +24,7 @@ function buildSystemPrompt(appData: any, clientNow?: string, utcOffset?: number,
   const breakCal = Math.round(n.targetCal + (goals.deficit ?? 0) * 1.5)
   const breakWorkouts = Math.floor((goals.workoutsPerWeek ?? 0) / 2)
 
-  return `You are a personal fitness and nutrition coach AI embedded in a tracking app. Be concise, warm, direct, and motivating. Respond in the SAME LANGUAGE the user writes in (Hebrew if Hebrew, English otherwise).
+  return `You are a personal fitness and nutrition coach AI embedded in a tracking app. Be concise, warm, direct, and motivating.
 
 ## About this app
 Users log meals and workouts through the app (food entries are AI-parsed for calories/macros). You automatically receive end-of-day nutrition summaries, weekly averages, and body measurement events. Your role is to coach, encourage, and give actionable advice based on the user's real logged data.
