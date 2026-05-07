@@ -7,7 +7,6 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
-  // Verify Supabase session token
   const token = (req.headers.authorization ?? '').replace('Bearer ', '')
   if (!token) return res.status(401).json({ error: 'Unauthorized' })
 
@@ -18,22 +17,46 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { data: { user }, error: authErr } = await supabase.auth.getUser(token)
   if (authErr || !user) return res.status(401).json({ error: 'Unauthorized' })
 
-  const { type, description, weightKg } = req.body as {
+  const { type, description, weightKg, imageBase64, imageMediaType } = req.body as {
     type: 'food' | 'activity'
-    description: string
+    description?: string
     weightKg?: number
+    imageBase64?: string
+    imageMediaType?: string
   }
 
-  const prompt = type === 'food'
-    ? `Estimate nutrition for: "${description}". Return JSON: {"calories":number,"protein_g":number,"carbs_g":number,"fat_g":number,"fiber_g":number,"water_ml":number,"label":string}`
-    : `Estimate calories burned for a ${weightKg}kg person: "${description}". Return JSON: {"calories_burned":number,"label":string,"duration_min":number}`
-
   try {
+    let messageContent: Anthropic.MessageParam['content']
+
+    if (type === 'food' && imageBase64) {
+      const textPrompt = description
+        ? `The user describes this food as: "${description}". Analyze the image and description to estimate nutrition. Return JSON only: {"calories":number,"protein_g":number,"carbs_g":number,"fat_g":number,"fiber_g":number,"water_ml":number,"label":string}`
+        : `Identify the food in this image and estimate its nutrition. Return JSON only: {"calories":number,"protein_g":number,"carbs_g":number,"fat_g":number,"fiber_g":number,"water_ml":number,"label":string}`
+
+      messageContent = [
+        {
+          type: 'image',
+          source: {
+            type: 'base64',
+            media_type: (imageMediaType || 'image/jpeg') as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp',
+            data: imageBase64,
+          },
+        },
+        { type: 'text', text: textPrompt },
+      ]
+    } else {
+      const prompt = type === 'food'
+        ? `Estimate nutrition for: "${description}". Return JSON only: {"calories":number,"protein_g":number,"carbs_g":number,"fat_g":number,"fiber_g":number,"water_ml":number,"label":string}`
+        : `Estimate calories burned for a ${weightKg}kg person: "${description}". Return JSON only: {"calories_burned":number,"label":string,"duration_min":number}`
+
+      messageContent = [{ type: 'text', text: prompt }]
+    }
+
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 500,
       system: 'You are a nutrition and fitness assistant. Always respond with valid JSON only. No markdown, no explanation.',
-      messages: [{ role: 'user', content: prompt }],
+      messages: [{ role: 'user', content: messageContent }],
     })
 
     const text = message.content.map(b => b.type === 'text' ? b.text : '').join('')

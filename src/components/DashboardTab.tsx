@@ -1,12 +1,44 @@
 // @ts-nocheck
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { CLR, todayKey, weekStart, dayTotals, programWeekOf } from "../lib/utils";
 import { parseFood, parseActivity } from "../lib/api";
 import { Card, Btn, Ring, inp, InfoTip, ConfirmModal } from "./ui";
 
+function compressImage(file) {
+  return new Promise(resolve => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const MAX = 1024;
+      let {naturalWidth: w, naturalHeight: h} = img;
+      if (w > MAX || h > MAX) {
+        if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+        else { w = Math.round(w * MAX / h); h = MAX; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      canvas.toBlob(blob => {
+        const reader = new FileReader();
+        reader.onload = e => {
+          const dataUrl = e.target.result;
+          resolve({dataUrl, b64: dataUrl.split(',')[1], mediaType: 'image/jpeg'});
+        };
+        reader.readAsDataURL(blob);
+      }, 'image/jpeg', 0.75);
+    };
+    img.src = url;
+  });
+}
+
 function AddEntryModal({type,t,weightKg,entries,onAdd,onClose}){
   const [text,setText]=useState(""),[loading,setLoading]=useState(false),[preview,setPreview]=useState(null);
   const [locked,setLocked]=useState(false);
+  const [imageDataUrl,setImageDataUrl]=useState(null);
+  const [imageBase64,setImageBase64]=useState(null);
+  const [imageMediaType,setImageMediaType]=useState('image/jpeg');
+  const fileInputRef=useRef(null);
 
   const suggestions=text.length>=2&&!locked
     ? [...new Map(
@@ -27,10 +59,10 @@ function AddEntryModal({type,t,weightKg,entries,onAdd,onClose}){
 
   function pickSuggestion(e){setText(e.label);analyze(e.label);}
 
-  async function runAI(txt){
+  async function runAI(txt,imgB64?,imgMime?){
     setLoading(true);
     try{
-      if(type==="food"){const r=await parseFood(txt);setPreview({label:r.label||txt,calories:r.calories_kcal||r.calories,protein:r.protein_g,carbs:r.carbs_g,fat:r.fat_g,fiber:r.fiber_g,water:Math.round((r.water_ml||0)/1000*10)/10});}
+      if(type==="food"){const r=await parseFood(txt,imgB64,imgMime);setPreview({label:r.label||txt||"Food",calories:r.calories_kcal||r.calories,protein:r.protein_g,carbs:r.carbs_g,fat:r.fat_g,fiber:r.fiber_g,water:Math.round((r.water_ml||0)/1000*10)/10});}
       else{const r=await parseActivity(txt,weightKg);setPreview({label:r.label||txt,calories_burned:r.calories_burned,duration_min:r.duration_min});}
     }catch(e){setPreview({error:true});}
     setLoading(false);
@@ -38,11 +70,34 @@ function AddEntryModal({type,t,weightKg,entries,onAdd,onClose}){
 
   async function analyze(txt){
     const s=String(txt||"").trim();
-    if(!s)return;
+    if(!s&&!imageBase64)return;
     setLocked(true);
-    const cached=(entries||[]).find(e=>e.type===type&&(e.label||"").toLowerCase()===s.toLowerCase());
-    if(cached){setPreview(previewFromEntry(cached));return;}
-    await runAI(s);
+    if(!imageBase64){
+      const cached=(entries||[]).find(e=>e.type===type&&(e.label||"").toLowerCase()===s.toLowerCase());
+      if(cached){setPreview(previewFromEntry(cached));return;}
+    }
+    await runAI(s,imageBase64,imageMediaType);
+  }
+
+  async function handleImageSelect(ev){
+    const file=ev.target.files?.[0];
+    if(!file)return;
+    ev.target.value='';
+    const {dataUrl,b64,mediaType}=await compressImage(file);
+    setImageDataUrl(dataUrl);
+    setImageBase64(b64);
+    setImageMediaType(mediaType);
+    setPreview(null);
+    setLocked(true);
+    await runAI(text,b64,mediaType);
+  }
+
+  function clearImage(){
+    setImageDataUrl(null);
+    setImageBase64(null);
+    setImageMediaType('image/jpeg');
+    setPreview(null);
+    setLocked(false);
   }
 
   function confirm(){if(!preview||preview.error)return;onAdd({...preview,ts:Date.now(),date:todayKey()});onClose();}
@@ -65,7 +120,7 @@ function AddEntryModal({type,t,weightKg,entries,onAdd,onClose}){
           placeholder={type==="food"?t.describeFood:t.describeActivity} rows={3}
           style={{...inp,resize:"none",marginBottom:4,fontSize:13,opacity:locked?0.55:1}}/>
 
-        {suggestions.length>0&&(
+        {suggestions.length>0&&!imageDataUrl&&(
           <div style={{background:CLR.card2,border:"1px solid "+CLR.border,borderRadius:10,marginBottom:8,overflow:"hidden"}}>
             {suggestions.map((sg,i)=>(
               <button key={i} onClick={()=>pickSuggestion(sg)}
@@ -74,7 +129,19 @@ function AddEntryModal({type,t,weightKg,entries,onAdd,onClose}){
               </button>))}
           </div>)}
 
-        {!locked&&<Btn onClick={()=>analyze(text)} disabled={!text.trim()} style={{width:"100%",marginBottom:8}}>✨ Analyze</Btn>}
+        {type==="food"&&!locked&&(
+          <label style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6,background:CLR.card2,border:"1px solid "+CLR.border,borderRadius:10,padding:"9px",cursor:"pointer",fontSize:13,marginBottom:8,color:CLR.text,userSelect:"none"}}>
+            📷 {t.photoBtn}
+            <input ref={fileInputRef} type="file" accept="image/*" style={{display:"none"}} onChange={handleImageSelect}/>
+          </label>)}
+
+        {imageDataUrl&&(
+          <div style={{position:"relative",marginBottom:8,borderRadius:10,overflow:"hidden",border:"1px solid "+CLR.border}}>
+            <img src={imageDataUrl} alt="food" style={{width:"100%",maxHeight:220,objectFit:"cover",display:"block"}}/>
+            <button onClick={clearImage} style={{position:"absolute",top:6,right:6,background:"rgba(0,0,0,0.65)",border:"none",borderRadius:"50%",color:"#fff",width:24,height:24,cursor:"pointer",fontSize:13,lineHeight:"24px",padding:0,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+          </div>)}
+
+        {!locked&&<Btn onClick={()=>analyze(text)} disabled={!text.trim()&&!imageBase64} style={{width:"100%",marginBottom:8}}>✨ Analyze</Btn>}
         {locked&&!preview&&<div style={{textAlign:"center",color:CLR.muted,fontSize:13,marginBottom:8,padding:"8px 0"}}>{t.analyzing}</div>}
 
         {preview&&!preview.error&&(
@@ -98,7 +165,7 @@ function AddEntryModal({type,t,weightKg,entries,onAdd,onClose}){
         {preview?.error&&<div style={{color:CLR.red,fontSize:13,marginBottom:8}}>Failed to analyze.</div>}
 
         <div style={{display:"flex",gap:8}}>
-          {locked&&<Btn variant="ghost" onClick={()=>runAI(text)} disabled={loading}>🔄 {loading?t.analyzing:"Recalculate"}</Btn>}
+          {locked&&<Btn variant="ghost" onClick={()=>runAI(text,imageBase64,imageMediaType)} disabled={loading}>🔄 {loading?t.analyzing:"Recalculate"}</Btn>}
           {preview&&!preview.error&&<Btn onClick={confirm} style={{flex:1}}>{t.add}</Btn>}
           <Btn variant="ghost" onClick={onClose}>{t.cancel}</Btn>
         </div>

@@ -50,6 +50,8 @@ export const T = {
     eodConfirmTitle:"End your day?",
     eodConfirmMsg:"This means you're done eating for today. You won't be able to add food until tomorrow.",
     eodConfirmBtn:"Yes, end my day",
+    photoBtn:"Photo",
+    changePhoto:"Change photo",
   },
   he: {
     dir:"rtl", setup:"הגדרה", dashboard:"לוח בקרה", timeline:"ציר זמן",
@@ -101,5 +103,7 @@ export const T = {
     eodConfirmTitle:"לסיים את היום?",
     eodConfirmMsg:"כלומר סיימת לאכול להיום. לא תוכל להוסיף אוכל עד מחר.",
     eodConfirmBtn:"כן, לסיים",
+    photoBtn:"תמונה",
+    changePhoto:"החלף תמונה",
   }
 };

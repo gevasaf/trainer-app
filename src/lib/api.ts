@@ -13,12 +13,12 @@ export async function fetchWithRetry(url, options, retries=3, baseDelay=1000) {
     await new Promise(r=>setTimeout(r, baseDelay * 2**i));
   }
 }
-export async function parseFood(desc) {
+export async function parseFood(desc, imageBase64?, imageMediaType?) {
   const session = await getSession();
   const res = await fetchWithRetry("/api/analyze", {
     method:"POST",
     headers:{"Content-Type":"application/json","Authorization":`Bearer ${session?.access_token}`},
-    body:JSON.stringify({type:"food",description:desc}),
+    body:JSON.stringify({type:"food",description:desc,imageBase64,imageMediaType}),
   });
   return res.json();
 }
