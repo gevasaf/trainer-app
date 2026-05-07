@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState } from "react";
-import { CLR, calcFatPct, calcTDEE, autoNutrition, nextSunday, addWeeks, fmtDate, breakWeekLabel, mergeGroups, buildTimeline } from "../lib/utils";
+import { CLR, calcFatPct, calcTDEE, autoNutrition, nextSunday, addWeeks, fmtDate, breakWeekLabel, mergeGroups, buildTimeline, localDateStr, todayKey } from "../lib/utils";
 import { Card, Btn, inp, InfoTip } from "./ui";
 import { TimelineChart } from "./TimelineChart";
 
@@ -12,7 +12,7 @@ export function SetupFlow({onComplete,t,lang,toggleLang}){
   const act=t.actLevels[p.actIdx];
   const bmi=p.height&&p.weight?Math.round((p.weight/((p.height/100)**2))*10)/10:null;
   const fatPct=p.height&&p.waist?calcFatPct(p.gender,bmi,p.height,p.waist):bmi?calcFatPct(p.gender,bmi):null;
-  const profile={...p,actMult:act.mult,bmi,fatPct,date:new Date().toISOString().slice(0,10)};
+  const profile={...p,actMult:act.mult,bmi,fatPct,date:todayKey()};
   const tdee=p.height&&p.weight&&p.age?calcTDEE(profile):null;
   const startDate=nextSunday();
   const [dur,setDur]=useState(12);
@@ -30,7 +30,7 @@ export function SetupFlow({onComplete,t,lang,toggleLang}){
   function apply(){
     onComplete({profile,tdee,fatPct,bmi,
       goals:{deficit,nutrition,proteinPerKg,workoutsPerWeek,durationWeeks:dur,breakWeeks:breakWks,
-        startDate:startDate.toISOString().slice(0,10),
+        startDate:localDateStr(startDate),
         startWeight:p.weight,startFat:fatPct,startWaist:p.waist,
         targetWeight:projW,targetFat:projFat,targetWaist:projWaist}});
   }

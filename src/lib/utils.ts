@@ -10,9 +10,11 @@ export function todayKey() {
   const d=new Date();
   return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
 }
+export function localDateStr(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
 export function weekStart(dateStr) {
-  const d = new Date(dateStr); const day = d.getDay();
-  d.setDate(d.getDate() - day); return d.toISOString().slice(0,10);
+  const [y,m,day]=dateStr.split("-").map(Number);
+  const d=new Date(y,m-1,day); // local midnight — avoids UTC shift
+  d.setDate(d.getDate()-d.getDay()); return localDateStr(d);
 }
 export function nextSunday() {
   const d = new Date(); const du = (7-d.getDay())%7||7;
