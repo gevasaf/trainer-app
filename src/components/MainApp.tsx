@@ -93,7 +93,7 @@ export function MainApp({data,t,lang,toggleLang,onReset,greetOnMount}){
     setAssistantStatus("thinking");
     const dateKey=eodEntry.date;
     const isNewWeek = weekStart(dateKey) !== weekStart(todayKey());
-    const eodCtx=buildEODContext(allEntries,dateKey,data.goals,isNewWeek,allEntries);
+    const eodCtx=buildEODContext(allEntries,dateKey,data.goals,isNewWeek,allEntries,eodEntry.auto??false);
     const dt=dayTotals(allEntries,dateKey);
     const eventCard={role:"event",eventType:"eod",data:{...dt,net:Math.round(dt.cal-dt.burned)},date:dateKey,ts:eodEntry.ts};
     let newHistory=[...chatHistory,eventCard];
