@@ -21,7 +21,7 @@ const T = {
       {label:"Manual labour",desc:"Hard physical work all day",mult:1.9},
     ],
     actLevelInfo:"Pick the level that matches your everyday background movement — your commute, job, and general lifestyle. Workouts you log separately are counted on top of this.",
-    activityLogInfo:"Log intentional workouts only — gym sessions, runs, cycling, sports, etc. Everyday movement like walking to the shops or household chores is already captured in your activity level.",
+    activityLogInfo:"Log intentional workouts only — gym sessions, runs, cycling, sports, etc. Everyday movement like walking to the shops or household chores is already captured in the activity level you defined in setup.",
     tdee:"TDEE", fatPct:"Est. Body Fat %", bmi:"BMI",
     durationWeeks:"Program duration (weeks)", breakWeeks:"Break weeks",
     calDeficit:"Avg calorie deficit / day",
@@ -72,7 +72,7 @@ const T = {
       {label:"עבודה פיזית",desc:"עבודה פיזית קשה כל היום",mult:1.9},
     ],
     actLevelInfo:"בחר את הרמה שמתאימה לתנועה היומיומית שלך — נסיעות, עבודה ואורח חיים כללי. אימונים שאתה מתעד בנפרד נספרים בנוסף לכך.",
-    activityLogInfo:"תעד רק אימונים מכוונים — חדר כושר, ריצה, רכיבה על אופניים, ספורט וכו'. תנועה יומיומית כמו הליכה לחנות או עבודות בית כבר נלקחת בחשבון ברמת הפעילות שלך.",
+    activityLogInfo:"תעד רק אימונים מכוונים — חדר כושר, ריצה, רכיבה על אופניים, ספורט וכו'. תנועה יומיומית כמו הליכה לחנות או עבודות בית כבר נלקחת בחשבון ברמת הפעילות שהגדרת בהגדרות.",
     tdee:"TDEE", fatPct:"אחוז שומן", bmi:"BMI",
     durationWeeks:"משך התוכנית (שבועות)", breakWeeks:"שבועות הפסקה",
     calDeficit:"גירעון קלורי יומי ממוצע",
@@ -275,7 +275,7 @@ function InfoTip({text}){
       <button onClick={e=>{e.stopPropagation();setOpen(o=>!o);}} style={{background:"none",border:"none",cursor:"pointer",color:CLR.muted,fontSize:14,lineHeight:1,padding:"0 2px"}}>ⓘ</button>
       {open&&<>
         <div onClick={()=>setOpen(false)} style={{position:"fixed",inset:0,zIndex:299}}/>
-        <div style={{position:"absolute",bottom:"calc(100% + 6px)",left:"50%",transform:"translateX(-50%)",background:CLR.card,border:"1px solid "+CLR.border,borderRadius:10,padding:"10px 12px",fontSize:12,color:CLR.muted,lineHeight:1.5,width:240,zIndex:300,boxShadow:"0 4px 20px rgba(0,0,0,0.5)"}}>
+        <div style={{position:"absolute",bottom:"calc(100% + 6px)",left:0,background:CLR.card,border:"1px solid "+CLR.border,borderRadius:10,padding:"10px 12px",fontSize:12,color:CLR.muted,lineHeight:1.5,width:240,zIndex:300,boxShadow:"0 4px 20px rgba(0,0,0,0.5)"}}>
           {text}
         </div>
       </>}
