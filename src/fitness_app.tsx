@@ -961,7 +961,7 @@ function MainApp({data,t,lang,toggleLang,onReset,greetOnMount}){
     if(!storeReady||!greetOnMount)return;
     setAssistantStatus("thinking");
     callAssistant("greeting",null,[],data,entries,bodyPoints,null)
-      .then(res=>{if(res?.text){setChatHistory([{role:"user",content:"[session start]",hidden:true,ts:Date.now()},{role:"assistant",content:res.text,ts:Date.now()}]);setUnreadCount(1);}})
+      .then(res=>{if(res?.text){setChatHistory([{role:"assistant",content:res.text,ts:Date.now()}]);setUnreadCount(1);}})
       .catch(()=>{})
       .finally(()=>setAssistantStatus(null));
   },[storeReady]);
