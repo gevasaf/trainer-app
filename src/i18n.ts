@@ -20,7 +20,7 @@ export const T = {
     durationWeeks:"Program duration (weeks)", breakWeeks:"Break weeks",
     calDeficit:"Avg calorie deficit / day",
     protein:"Protein", carbs:"Carbs", fat:"Fat", fiber:"Fiber", water:"Water",
-    workoutsPerWeek:"Workouts per week",
+    workoutsPerWeek:"Weekly workout goal",
     projectedGoals:"Projected at end of program",
     targetWeight:"Target weight", targetFat:"Target body fat %", targetWaist:"Target waist",
     applyBtn:"Looks good — let's go!", comingSoon:"Coming soon",
