@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState } from "react";
-import { CLR, todayKey, weekStart, dayTotals } from "../lib/utils";
+import { CLR, todayKey, weekStart, dayTotals, programWeekOf } from "../lib/utils";
 import { parseFood, parseActivity } from "../lib/api";
 import { Card, Btn, Ring, inp, InfoTip, ConfirmModal } from "./ui";
 
@@ -125,9 +125,13 @@ export function DashboardTab({t,appData,entries,setEntries,onEOD}){
   }
   const wkStart=weekStart(today);
   const weekWorkouts=[...new Set(entries.filter(e=>e.type==="activity"&&e.date>=wkStart&&e.date<=today).map(e=>e.date))].length;
-  const workoutTarget=appData.goals.workoutsPerWeek||0;
+  const currentWeek=programWeekOf(appData.goals.startDate,today);
+  const isBreakWeek=currentWeek!=null&&(appData.goals.breakWeeks||[]).includes(currentWeek);
+  const breakCal=Math.round(goals.targetCal+(appData.goals.deficit||0)*1.5);
+  const effectiveCal=isBreakWeek?breakCal:goals.targetCal;
+  const workoutTarget=isBreakWeek?Math.floor((appData.goals.workoutsPerWeek||0)/2):(appData.goals.workoutsPerWeek||0);
   const rings=[
-    {label:t.calories,value:net,max:goals.targetCal,color:CLR.purple,unit:""},
+    {label:t.calories,value:net,max:effectiveCal,color:CLR.purple,unit:""},
     {label:t.protein,value:tots.protein,max:goals.protein,color:CLR.green,unit:"g"},
     {label:t.carbs,value:tots.carbs,max:goals.carbs,color:CLR.amber,unit:"g"},
     {label:t.fat,value:tots.fat,max:goals.fat,color:CLR.red,unit:"g"},
@@ -142,8 +146,15 @@ export function DashboardTab({t,appData,entries,setEntries,onEOD}){
 
       {/* Fixed top: stats + rings + actions */}
       <div style={{flexShrink:0,padding:"12px 16px 0"}}>
+        {isBreakWeek&&<div style={{background:"#0a1f3d",border:"1px solid #1e4a8f",borderRadius:12,padding:"10px 14px",marginBottom:10,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div>
+            <div style={{fontSize:14,fontWeight:700,color:CLR.blue,marginBottom:2}}>🌊 Break Week {currentWeek}</div>
+            <div style={{fontSize:11,color:"#7bafd4"}}>+{Math.round((appData.goals.deficit||0)/2)} kcal surplus · {workoutTarget} workout{workoutTarget!==1?"s":""} · Keep logging normally</div>
+          </div>
+          <InfoTip text={`Break weeks use a small calorie surplus (your deficit ÷ 2 = +${Math.round((appData.goals.deficit||0)/2)} kcal/day, target ${breakCal} kcal) and half your usual workouts (${workoutTarget} this week) to let your body recover while minimising fat gain. Keep logging food and activity as normal — the targets above already reflect this week's goals.`}/>
+        </div>}
         <Card style={{marginBottom:10,display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 14px"}}>
-          {[[t.eaten,Math.round(tots.cal),"kcal",CLR.purple],[t.burned,Math.round(tots.burned),"kcal",CLR.amber],[t.net,net,"kcal",net>goals.targetCal?CLR.red:CLR.green]].map(([l,v,u,c])=>(
+          {[[t.eaten,Math.round(tots.cal),"kcal",CLR.purple],[t.burned,Math.round(tots.burned),"kcal",CLR.amber],[t.net,net,"kcal",net>effectiveCal?CLR.red:CLR.green]].map(([l,v,u,c])=>(
             <div key={l} style={{textAlign:"center"}}><div style={{fontSize:11,color:CLR.muted}}>{l}</div><div style={{fontSize:20,fontWeight:700,color:c}}>{v}</div><div style={{fontSize:10,color:CLR.dim}}>{u}</div></div>))}
         </Card>
         <Card style={{marginBottom:10,padding:"12px 8px"}}>

@@ -54,6 +54,11 @@ export function autoNutrition(tdee,deficit,proteinG,weight){
         fiberG=Math.round(14*(tc/1000)),waterL=Math.round(weight*0.033*10)/10;
   return {targetCal:tc,protein:proteinG,carbs:carbG,fat:fatG,fiber:fiberG,water:waterL};
 }
+export function programWeekOf(startDate, dateKey) {
+  const days=Math.floor((new Date(dateKey+"T00:00:00").getTime()-new Date(startDate+"T00:00:00").getTime())/(1000*60*60*24));
+  if(days<0) return null;
+  return Math.floor(days/7)+1;
+}
 export function buildTimeline(weeks,breakWeeks,deficit,sw,sf,sws,workoutsPerWeek=4,proteinPerKg=1.8,gender="male"){
   const waistPerKgFat=gender==="female"?0.9:1.0;
   function fatFracDeficit(wo,ppk){
@@ -96,7 +101,11 @@ export function buildEODContext(entries, dateKey, goals, isNewWeek, allEntries) 
   const netCal = Math.round(dt.cal - dt.burned);
   const ws = weekStart(dateKey);
   const weekWorkouts = [...new Set(allEntries.filter(e=>e.type==="activity"&&e.date>=ws&&e.date<=dateKey).map(e=>e.date))].length;
-  let text = `[END OF DAY: ${dateKey}]\nNet calories: ${netCal} / ${g.targetCal} kcal | Eaten: ${Math.round(dt.cal)} kcal | Burned: ${Math.round(dt.burned)} kcal | Protein: ${Math.round(dt.protein)}g / ${g.protein}g | Carbs: ${Math.round(dt.carbs)}g / ${g.carbs}g | Fat: ${Math.round(dt.fat)}g / ${g.fat}g | Fiber: ${Math.round(dt.fiber)}g / ${g.fiber}g | Water: ${round1(dt.water)}L / ${g.water}L | Workouts this week: ${weekWorkouts} / ${goals.workoutsPerWeek||0}`;
+  const currentWeek = programWeekOf(goals.startDate, dateKey);
+  const isBreakWk = currentWeek!=null && (goals.breakWeeks||[]).includes(currentWeek);
+  const effectiveWorkoutGoal = isBreakWk ? Math.floor((goals.workoutsPerWeek||0)/2) : (goals.workoutsPerWeek||0);
+  const effectiveCal = isBreakWk ? Math.round(g.targetCal + (goals.deficit||0)*1.5) : g.targetCal;
+  let text = `[END OF DAY: ${dateKey}]${isBreakWk?" [BREAK WEEK "+currentWeek+"]":""}\nNet calories: ${netCal} / ${effectiveCal} kcal | Eaten: ${Math.round(dt.cal)} kcal | Burned: ${Math.round(dt.burned)} kcal | Protein: ${Math.round(dt.protein)}g / ${g.protein}g | Carbs: ${Math.round(dt.carbs)}g / ${g.carbs}g | Fat: ${Math.round(dt.fat)}g / ${g.fat}g | Fiber: ${Math.round(dt.fiber)}g / ${g.fiber}g | Water: ${round1(dt.water)}L / ${g.water}L | Workouts this week: ${weekWorkouts} / ${effectiveWorkoutGoal}`;
   if (isNewWeek) {
     const ws = weekStart(dateKey);
     const days = [...new Set(allEntries.filter(e=>weekStart(e.date)===ws&&e.date<=dateKey).map(e=>e.date))].sort();

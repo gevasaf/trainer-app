@@ -36,10 +36,11 @@ export async function callAssistant(mode, userMsg, chatHistory, appData, allEntr
   const now = new Date();
   const clientNow = now.toLocaleString("en-GB",{weekday:"long",year:"numeric",month:"long",day:"numeric",hour:"2-digit",minute:"2-digit"});
   const utcOffset = -now.getTimezoneOffset(); // minutes east of UTC
+  const todayISO = now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0")+"-"+String(now.getDate()).padStart(2,"0");
   const res = await fetchWithRetry("/api/chat", {
     method:"POST",
     headers:{"Content-Type":"application/json","Authorization":`Bearer ${session?.access_token}`},
-    body:JSON.stringify({mode,userMsg,chatHistory,appData,allEntries,bodyPoints,eventContext,clientNow,utcOffset}),
+    body:JSON.stringify({mode,userMsg,chatHistory,appData,allEntries,bodyPoints,eventContext,clientNow,utcOffset,todayISO}),
   });
   return res.json();
 }

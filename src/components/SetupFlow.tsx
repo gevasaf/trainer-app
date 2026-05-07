@@ -76,7 +76,7 @@ export function SetupFlow({onComplete,t,lang,toggleLang}){
             <div style={{fontSize:12,color:CLR.muted,marginBottom:5}}>{t.durationWeeks}</div>
             <input type="number" value={dur} min={4} max={52} onChange={e=>{const v=+e.target.value;setDur(v);setBreakWks(bw=>bw.filter(w=>w<=v));}} style={{...inp,marginBottom:6}}/>
             <div style={{fontSize:12,color:CLR.muted,marginBottom:12,display:"flex",gap:8}}><span>{"📅 "+fmtDate(startDate,lang)}</span><span style={{color:CLR.dim}}>→</span><span style={{color:CLR.purple}}>{fmtDate(addWeeks(startDate,dur),lang)}</span></div>
-            <div style={{fontSize:12,color:CLR.muted,marginBottom:8}}>{t.breakWeeks}</div>
+            <div style={{fontSize:12,color:CLR.muted,marginBottom:8,display:"flex",alignItems:"center",gap:4}}>{t.breakWeeks}<InfoTip text={`Break weeks use a small calorie surplus (your deficit ÷ 2 = +${Math.round(deficit/2)} kcal/day) and half your usual workouts (${Math.floor(workoutsPerWeek/2)}), allowing recovery while minimising fat gain.`}/></div>
             <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:8}}>{Array.from({length:dur},(_,i)=>i+1).map(w=>{const isBrk=breakWks.includes(w);return<button key={w} onClick={()=>toggleBreak(w)} style={{width:32,height:28,borderRadius:7,fontSize:11,fontWeight:600,border:"1px solid "+(isBrk?CLR.blue:CLR.border),background:isBrk?"#1e3a5f":CLR.card2,color:isBrk?CLR.blue:CLR.dim,cursor:"pointer"}}>{w}</button>;})}</div>
             <div style={{fontSize:11,color:CLR.dim,lineHeight:1.7}}>{breakWks.length>0?breakWeekLabel(breakWks,startDate,lang):"Tap week numbers to mark as break weeks"}</div>
           </Card>

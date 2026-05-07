@@ -6,16 +6,31 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 // ─── Helpers (mirrored from client) ──────────────────────────────────────────
 
-function buildSystemPrompt(appData: any, clientNow?: string, utcOffset?: number) {
+function programWeekOf(startDate: string, dateKey: string): number | null {
+  const days = Math.floor((new Date(dateKey + 'T00:00:00').getTime() - new Date(startDate + 'T00:00:00').getTime()) / (1000 * 60 * 60 * 24))
+  if (days < 0) return null
+  return Math.floor(days / 7) + 1
+}
+
+function buildSystemPrompt(appData: any, clientNow?: string, utcOffset?: number, todayISO?: string) {
   const { profile, goals, tdee } = appData
   const n = goals.nutrition
   const offsetStr = utcOffset != null
     ? `UTC${utcOffset >= 0 ? '+' : ''}${Math.floor(utcOffset / 60)}${utcOffset % 60 ? ':' + String(Math.abs(utcOffset % 60)).padStart(2, '0') : ''}`
     : 'UTC'
-  return `You are a personal fitness and diet trainer AI. Be concise, warm, direct, and motivating. Respond in the SAME LANGUAGE the user writes in (Hebrew if Hebrew, English otherwise).
+
+  const currentWeek = todayISO ? programWeekOf(goals.startDate, todayISO) : null
+  const isBreakWeek = currentWeek != null && (goals.breakWeeks ?? []).includes(currentWeek)
+  const breakCal = Math.round(n.targetCal + (goals.deficit ?? 0) * 1.5)
+  const breakWorkouts = Math.floor((goals.workoutsPerWeek ?? 0) / 2)
+
+  return `You are a personal fitness and nutrition coach AI embedded in a tracking app. Be concise, warm, direct, and motivating. Respond in the SAME LANGUAGE the user writes in (Hebrew if Hebrew, English otherwise).
+
+## About this app
+Users log meals and workouts through the app (food entries are AI-parsed for calories/macros). You automatically receive end-of-day nutrition summaries, weekly averages, and body measurement events. Your role is to coach, encourage, and give actionable advice based on the user's real logged data.
 
 ## Current date & time
-${clientNow ?? 'unknown'} (${offsetStr})
+${clientNow ?? 'unknown'} (${offsetStr})${isBreakWeek ? ` — 🌊 BREAK WEEK (week ${currentWeek} of ${goals.durationWeeks})` : ''}
 All log dates are in the user's local timezone. Use this date when computing relative references like "yesterday" or "3 days ago".
 
 ## User profile
@@ -26,10 +41,10 @@ TDEE: ${tdee} kcal/day | BMI: ${profile.bmi} | Est. body fat: ${profile.fatPct}%
 Goal type: ${goals.goalType || 'weight loss'} | Duration: ${goals.durationWeeks} weeks | Start: ${goals.startDate}
 Break weeks: ${goals.breakWeeks?.length ? goals.breakWeeks.join(', ') : 'none'} | Committed workouts/week: ${goals.workoutsPerWeek}
 Target weight: ${goals.targetWeight}kg | Target waist: ${goals.targetWaist}cm | Target fat%: ${goals.targetFat || 'n/a'}%
-
+${isBreakWeek ? `\n⚠️ This is a break week. Adjusted targets: ~${breakCal} kcal/day (small surplus for recovery) | ${breakWorkouts} workout(s) this week. The user should still log food and activity normally.` : ''}
 ## Daily targets
-Calories: ${n.targetCal} kcal | Protein: ${n.protein}g | Carbs: ${n.carbs}g | Fat: ${n.fat}g | Fiber: ${n.fiber}g | Water: ${n.water}L
-Calorie deficit: ${goals.deficit} kcal/day vs TDEE
+Calories: ${isBreakWeek ? breakCal : n.targetCal} kcal | Protein: ${n.protein}g | Carbs: ${n.carbs}g | Fat: ${n.fat}g | Fiber: ${n.fiber}g | Water: ${n.water}L
+${isBreakWeek ? `Calorie surplus: +${Math.round((goals.deficit ?? 0) / 2)} kcal/day vs TDEE (break week recovery)` : `Calorie deficit: ${goals.deficit} kcal/day vs TDEE`}
 
 ## Instructions
 - You have a query_log tool. Use it ONLY when the user asks about specific foods, activities, or patterns over time that you cannot answer from conversation history.
@@ -118,9 +133,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { data: { user }, error: authErr } = await supabase.auth.getUser(token)
   if (authErr || !user) return res.status(401).json({ error: 'Unauthorized' })
 
-  const { mode, userMsg, eventContext, chatHistory, appData, allEntries, clientNow, utcOffset } = req.body
+  const { mode, userMsg, eventContext, chatHistory, appData, allEntries, clientNow, utcOffset, todayISO } = req.body
 
-  const systemPrompt = buildSystemPrompt(appData, clientNow, utcOffset)
+  const systemPrompt = buildSystemPrompt(appData, clientNow, utcOffset, todayISO)
 
   // Build message list — filter out UI-only event cards (role:"event")
   const full = (chatHistory as any[]).slice(-N_FULL)
