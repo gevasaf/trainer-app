@@ -13,6 +13,16 @@ A personal fitness and diet coaching app powered by Claude AI, with cross-device
 - **PWA** – installable on iOS and Android as a home screen app
 - **Hebrew / English** – full bilingual UI
 
+## Calorie model
+
+The app uses a **lifestyle baseline + log workouts** model:
+
+- **Activity level** (set during onboarding) captures your everyday background movement — commute style, type of job, how much you're on your feet. It does _not_ represent workout frequency.
+- **Logged activities** are intentional exercise sessions (gym, runs, cycling, sports) that are genuinely on top of your baseline. These are the burns you track.
+- **Net calories** = food eaten − logged workout burns. This is compared against `targetCal` (TDEE − deficit) everywhere: the dashboard ring, end-of-day summaries, weekly averages, and the AI assistant context.
+
+This means on a rest day and a training day the calorie ring measures the same thing — whether you're hitting your intended deficit — and the ring moves in your favour when you log a hard session.
+
 ## Tech stack
 
 | Layer | Tech |
