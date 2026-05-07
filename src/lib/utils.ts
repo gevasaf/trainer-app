@@ -94,7 +94,9 @@ export function buildEODContext(entries, dateKey, goals, isNewWeek, allEntries) 
   const dt = dayTotals(entries, dateKey);
   const g = goals.nutrition;
   const netCal = Math.round(dt.cal - dt.burned);
-  let text = `[END OF DAY: ${dateKey}]\nNet calories: ${netCal} / ${g.targetCal} kcal | Eaten: ${Math.round(dt.cal)} kcal | Burned: ${Math.round(dt.burned)} kcal | Protein: ${Math.round(dt.protein)}g / ${g.protein}g | Carbs: ${Math.round(dt.carbs)}g / ${g.carbs}g | Fat: ${Math.round(dt.fat)}g / ${g.fat}g | Fiber: ${Math.round(dt.fiber)}g / ${g.fiber}g | Water: ${round1(dt.water)}L / ${g.water}L`;
+  const ws = weekStart(dateKey);
+  const weekWorkouts = [...new Set(allEntries.filter(e=>e.type==="activity"&&e.date>=ws&&e.date<=dateKey).map(e=>e.date))].length;
+  let text = `[END OF DAY: ${dateKey}]\nNet calories: ${netCal} / ${g.targetCal} kcal | Eaten: ${Math.round(dt.cal)} kcal | Burned: ${Math.round(dt.burned)} kcal | Protein: ${Math.round(dt.protein)}g / ${g.protein}g | Carbs: ${Math.round(dt.carbs)}g / ${g.carbs}g | Fat: ${Math.round(dt.fat)}g / ${g.fat}g | Fiber: ${Math.round(dt.fiber)}g / ${g.fiber}g | Water: ${round1(dt.water)}L / ${g.water}L | Workouts this week: ${weekWorkouts} / ${goals.workoutsPerWeek||0}`;
   if (isNewWeek) {
     const ws = weekStart(dateKey);
     const days = [...new Set(allEntries.filter(e=>weekStart(e.date)===ws&&e.date<=dateKey).map(e=>e.date))].sort();

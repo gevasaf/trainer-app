@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState } from "react";
-import { CLR, todayKey, dayTotals } from "../lib/utils";
+import { CLR, todayKey, weekStart, dayTotals } from "../lib/utils";
 import { parseFood, parseActivity } from "../lib/api";
 import { Card, Btn, Ring, inp, InfoTip, ConfirmModal } from "./ui";
 
@@ -123,6 +123,9 @@ export function DashboardTab({t,appData,entries,setEntries,onEOD}){
     onEOD(eodEntry,entries);
     setEodConfirm(false);
   }
+  const wkStart=weekStart(today);
+  const weekWorkouts=[...new Set(entries.filter(e=>e.type==="activity"&&e.date>=wkStart&&e.date<=today).map(e=>e.date))].length;
+  const workoutTarget=appData.goals.workoutsPerWeek||0;
   const rings=[
     {label:t.calories,value:net,max:goals.targetCal,color:CLR.purple,unit:""},
     {label:t.protein,value:tots.protein,max:goals.protein,color:CLR.green,unit:"g"},
@@ -146,6 +149,17 @@ export function DashboardTab({t,appData,entries,setEntries,onEOD}){
         <Card style={{marginBottom:10,padding:"12px 8px"}}>
           <div style={{display:"flex",justifyContent:"space-around",flexWrap:"wrap",gap:6}}>{rings.map(r=><Ring key={r.label} {...r}/>)}</div>
         </Card>
+        {workoutTarget>0&&<Card style={{marginBottom:10,padding:"10px 14px"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+            <span style={{fontSize:12,color:CLR.muted}}>🏋️ Workouts this week</span>
+            <span style={{fontSize:12,fontWeight:600,color:weekWorkouts>=workoutTarget?CLR.green:CLR.muted}}>{weekWorkouts} / {workoutTarget}</span>
+          </div>
+          <div style={{display:"flex",gap:4}}>
+            {Array.from({length:workoutTarget},(_,i)=>(
+              <div key={i} style={{flex:1,height:5,borderRadius:3,background:i<weekWorkouts?CLR.green:CLR.border}}/>
+            ))}
+          </div>
+        </Card>}
         {!eod&&<div style={{display:"grid",gridTemplateColumns:new Date().getHours()>=19?"1fr 1fr 1fr":"1fr 1fr",gap:8,marginBottom:10}}>
           <Btn onClick={()=>setModal("food")} style={{fontSize:12,padding:"10px 6px"}}>🍽 {t.addFood}</Btn>
           <Btn onClick={()=>setModal("activity")} style={{fontSize:12,padding:"10px 6px",background:CLR.card2,color:CLR.green,border:"1px solid "+CLR.border}}>🏃 {t.addActivity}</Btn>
