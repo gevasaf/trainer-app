@@ -143,8 +143,13 @@ function breakWeekLabel(weeks,startDate,lang) {
     return (g.length>1?"Wks "+g[0]+"–"+g[g.length-1]:"Wk "+g[0])+": "+fmtDate(from,lang)+" – "+fmtDate(to,lang);
   }).join("  •  ");
 }
-function calcFatPct(gender,bmi){
-  if(!bmi) return null;
+function calcFatPct(gender,bmi,height=null,waist=null){
+  if(height&&waist){
+    // Relative Fat Mass formula (Woolcott & Bergman 2018) — more accurate than BMI alone
+    const rfm=gender==="male"?64-(20*height/waist):76-(20*height/waist);
+    return Math.round(Math.max(3,Math.min(60,rfm)));
+  }
+  if(!bmi)return null;
   return gender==="male"?Math.round(1.20*bmi+0.23*30-16.2):Math.round(1.20*bmi+0.23*30-5.4);
 }
 function calcTDEE(p){
@@ -279,7 +284,8 @@ function BodyStatModal({t,profile,onSave,onClose}){
   function save(){
     if(!fw&&!fws)return;
     const w=parseFloat(fw)||null,ws=parseFloat(fws)||null;
-    const fat=w&&profile.height?calcFatPct(profile.gender,Math.round((w/((profile.height/100)**2))*10)/10):null;
+    const fat=profile.height&&ws?calcFatPct(profile.gender,null,profile.height,ws)
+      :w&&profile.height?calcFatPct(profile.gender,Math.round((w/((profile.height/100)**2))*10)/10):null;
     onSave({date:todayKey(),weight:w,waist:ws,fat,ts:Date.now()});
     onClose();
   }
@@ -380,7 +386,7 @@ function SetupFlow({onComplete,t,lang,toggleLang}){
   const [p,setP]=useState({name:"",age:30,gender:"male",height:175,weight:80,waist:85,actIdx:2});
   const act=t.actLevels[p.actIdx];
   const bmi=p.height&&p.weight?Math.round((p.weight/((p.height/100)**2))*10)/10:null;
-  const fatPct=bmi?calcFatPct(p.gender,bmi):null;
+  const fatPct=p.height&&p.waist?calcFatPct(p.gender,bmi,p.height,p.waist):bmi?calcFatPct(p.gender,bmi):null;
   const profile={...p,actMult:act.mult,bmi,fatPct,date:new Date().toISOString().slice(0,10)};
   const tdee=p.height&&p.weight&&p.age?calcTDEE(profile):null;
   const startDate=nextSunday();
@@ -404,16 +410,20 @@ function SetupFlow({onComplete,t,lang,toggleLang}){
         targetWeight:projW,targetFat:projFat,targetWaist:projWaist}});
   }
   return(
-    <div style={{minHeight:"100dvh",background:CLR.bg,color:CLR.text,fontFamily:"system-ui,sans-serif",direction:t.dir,overflowY:"auto"}}>
-      <div style={{maxWidth:540,margin:"0 auto",padding:"24px 16px 60px"}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}>
+    <div style={{height:"100dvh",background:CLR.bg,color:CLR.text,fontFamily:"system-ui,sans-serif",direction:t.dir,display:"flex",flexDirection:"column",alignItems:"center",overflow:"hidden"}}>
+      {/* Fixed header */}
+      <div style={{width:"100%",maxWidth:540,flexShrink:0,padding:"24px 16px 0"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
           <div><div style={{fontSize:22,fontWeight:700,color:CLR.purple}}>{"💪 "+t.setup}</div>
             <div style={{fontSize:12,color:CLR.muted,marginTop:2}}>{"Step "+step+" of 2"}</div></div>
           <button onClick={toggleLang} style={{background:CLR.card,border:"1px solid "+CLR.border,color:CLR.muted,borderRadius:8,padding:"6px 14px",cursor:"pointer",fontSize:13}}>{lang==="en"?"עב":"EN"}</button>
         </div>
-        <div style={{display:"flex",gap:8,marginBottom:24}}>
+        <div style={{display:"flex",gap:8,marginBottom:16}}>
           {[1,2].map(s=><div key={s} style={{flex:1,height:4,borderRadius:4,background:step>=s?CLR.purple:CLR.border}}/>)}
         </div>
+      </div>
+      {/* Scrollable content */}
+      <div style={{width:"100%",maxWidth:540,flex:1,overflowY:"auto",padding:"4px 16px 60px"}}>
         {step===1&&(<div>
           <div style={{fontSize:16,fontWeight:600,marginBottom:16,color:CLR.purple}}>{t.step1}</div>
           <div style={{marginBottom:12}}><div style={{fontSize:12,color:CLR.muted,marginBottom:5}}>{t.name}</div><input value={p.name} onChange={e=>setP(x=>({...x,name:e.target.value}))} style={inp}/></div>
@@ -481,6 +491,7 @@ function SetupFlow({onComplete,t,lang,toggleLang}){
     </div>
   );
 }
+
 
 // ─── CONFIRM MODAL ────────────────────────────────────────────────────────────
 function ConfirmModal({title,message,confirmText,danger=false,onConfirm,onCancel}){
