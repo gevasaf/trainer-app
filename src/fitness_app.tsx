@@ -114,7 +114,10 @@ const CLR = {
   text:"#e5e5f0", muted:"#888", dim:"#555"
 };
 
-function todayKey() { return new Date().toISOString().slice(0,10); }
+function todayKey() {
+  const d=new Date();
+  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+}
 function weekStart(dateStr) {
   const d = new Date(dateStr); const day = d.getDay();
   d.setDate(d.getDate() - day); return d.toISOString().slice(0,10);
@@ -203,9 +206,21 @@ function buildMeasurementContext(bodyPoints, newPoint) {
 }
 
 // ─── API CALLS ────────────────────────────────────────────────────────────────
+async function fetchWithRetry(url, options, retries=3, baseDelay=1000) {
+  for(let i=0;i<retries;i++){
+    try{
+      const res = await fetch(url, options);
+      if(res.ok || res.status < 500) return res; // don't retry 4xx
+      if(i===retries-1) return res;
+    }catch(e){
+      if(i===retries-1) throw e;
+    }
+    await new Promise(r=>setTimeout(r, baseDelay * 2**i));
+  }
+}
 async function parseFood(desc) {
   const session = await getSession();
-  const res = await fetch("/api/analyze", {
+  const res = await fetchWithRetry("/api/analyze", {
     method:"POST",
     headers:{"Content-Type":"application/json","Authorization":`Bearer ${session?.access_token}`},
     body:JSON.stringify({type:"food",description:desc}),
@@ -214,7 +229,7 @@ async function parseFood(desc) {
 }
 async function parseActivity(desc, weightKg) {
   const session = await getSession();
-  const res = await fetch("/api/analyze", {
+  const res = await fetchWithRetry("/api/analyze", {
     method:"POST",
     headers:{"Content-Type":"application/json","Authorization":`Bearer ${session?.access_token}`},
     body:JSON.stringify({type:"activity",description:desc,weightKg}),
@@ -223,10 +238,13 @@ async function parseActivity(desc, weightKg) {
 }
 async function callAssistant(mode, userMsg, chatHistory, appData, allEntries, bodyPoints, eventContext) {
   const session = await getSession();
-  const res = await fetch("/api/chat", {
+  const now = new Date();
+  const clientNow = now.toLocaleString("en-GB",{weekday:"long",year:"numeric",month:"long",day:"numeric",hour:"2-digit",minute:"2-digit"});
+  const utcOffset = -now.getTimezoneOffset(); // minutes east of UTC
+  const res = await fetchWithRetry("/api/chat", {
     method:"POST",
     headers:{"Content-Type":"application/json","Authorization":`Bearer ${session?.access_token}`},
-    body:JSON.stringify({mode,userMsg,chatHistory,appData,allEntries,bodyPoints,eventContext}),
+    body:JSON.stringify({mode,userMsg,chatHistory,appData,allEntries,bodyPoints,eventContext,clientNow,utcOffset}),
   });
   return res.json();
 }

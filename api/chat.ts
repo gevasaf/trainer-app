@@ -6,10 +6,17 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 // ─── Helpers (mirrored from client) ──────────────────────────────────────────
 
-function buildSystemPrompt(appData: any) {
+function buildSystemPrompt(appData: any, clientNow?: string, utcOffset?: number) {
   const { profile, goals, tdee } = appData
   const n = goals.nutrition
+  const offsetStr = utcOffset != null
+    ? `UTC${utcOffset >= 0 ? '+' : ''}${Math.floor(utcOffset / 60)}${utcOffset % 60 ? ':' + String(Math.abs(utcOffset % 60)).padStart(2, '0') : ''}`
+    : 'UTC'
   return `You are a personal fitness and diet trainer AI. Be concise, warm, direct, and motivating. Respond in the SAME LANGUAGE the user writes in (Hebrew if Hebrew, English otherwise).
+
+## Current date & time
+${clientNow ?? 'unknown'} (${offsetStr})
+All log dates are in the user's local timezone. Use this date when computing relative references like "yesterday" or "3 days ago".
 
 ## User profile
 Name: ${profile.name} | Age: ${profile.age} | Gender: ${profile.gender} | Height: ${profile.height}cm | Starting weight: ${profile.weight}kg | Starting waist: ${profile.waist}cm
@@ -102,9 +109,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { data: { user }, error: authErr } = await supabase.auth.getUser(token)
   if (authErr || !user) return res.status(401).json({ error: 'Unauthorized' })
 
-  const { mode, userMsg, eventContext, chatHistory, appData, allEntries } = req.body
+  const { mode, userMsg, eventContext, chatHistory, appData, allEntries, clientNow, utcOffset } = req.body
 
-  const systemPrompt = buildSystemPrompt(appData)
+  const systemPrompt = buildSystemPrompt(appData, clientNow, utcOffset)
 
   // Build message list — filter out UI-only event cards (role:"event")
   const full = (chatHistory as any[]).slice(-N_FULL)
