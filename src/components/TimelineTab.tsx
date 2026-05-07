@@ -46,7 +46,7 @@ export function TimelineTab({t,appData,bodyPoints,setBodyPoints,onMeasurement,la
       <div style={{flexShrink:0,padding:"12px 16px 0"}}>
         <Card style={{padding:"12px 10px",marginBottom:10}}>
           <TimelineChart weeks={goals.durationWeeks} breakWeeks={goals.breakWeeks} startDate={new Date(goals.startDate)}
-            goals={{deficit:goals.deficit,startWeight:goals.startWeight,startFat:goals.startFat||20,startWaist:goals.startWaist}}
+            goals={{deficit:goals.deficit,startWeight:goals.startWeight,startFat:goals.startFat||20,startWaist:goals.startWaist,workoutsPerWeek:goals.workoutsPerWeek||4,proteinPerKg:goals.proteinPerKg||1.8,gender:appData.profile.gender||"male"}}
             realPoints={bodyPoints} lang={lang}/>
         </Card>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:10}}>

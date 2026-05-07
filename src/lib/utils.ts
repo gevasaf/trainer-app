@@ -54,13 +54,30 @@ export function autoNutrition(tdee,deficit,proteinG,weight){
         fiberG=Math.round(14*(tc/1000)),waterL=Math.round(weight*0.033*10)/10;
   return {targetCal:tc,protein:proteinG,carbs:carbG,fat:fatG,fiber:fiberG,water:waterL};
 }
-export function buildTimeline(weeks,breakWeeks,deficit,sw,sf,sws){
-  const dkw=(deficit*7)/7700; let w=sw,f=sf,ws=sws; const pts=[{w,f,ws}];
+export function buildTimeline(weeks,breakWeeks,deficit,sw,sf,sws,workoutsPerWeek=4,proteinPerKg=1.8,gender="male"){
+  const waistPerKgFat=gender==="female"?0.9:1.0;
+  function fatFracDeficit(wo,ppk){
+    return Math.min(0.95,0.70+Math.min((ppk-1.0)/1.4,1)*0.15+Math.min(wo/4,1)*0.10);
+  }
+  function fatFracSurplus(wo,ppk){
+    return Math.max(0.30,0.85-Math.min((ppk-1.0)/1.4,1)*0.25-Math.min(wo/4,1)*0.20);
+  }
+  let w=sw,f=sf,ws=sws; const pts=[{w,f,ws}];
   for(let i=1;i<=weeks;i++){
-    const b=breakWeeks.includes(i);
-    if(b){w+=dkw*0.15;f+=0.08;ws+=0.06;}
-    else{w-=dkw;f-=Math.max(0,(f*dkw/Math.max(w,1))*0.65);ws-=0.09;}
-    pts.push({w,f:Math.max(4,f),ws});
+    if(breakWeeks.includes(i)){
+      const dkw=(deficit/2*7)/7700;
+      const ff=fatFracSurplus(Math.floor(workoutsPerWeek/2),proteinPerKg);
+      const fatGained=dkw*ff;
+      const fatMass=Math.max(0,w*(f/100)+fatGained);
+      w+=dkw; f=(fatMass/w)*100; ws+=fatGained*waistPerKgFat;
+    } else {
+      const dkw=(deficit*7)/7700;
+      const ff=fatFracDeficit(workoutsPerWeek,proteinPerKg);
+      const fatLost=dkw*ff;
+      const fatMass=Math.max(0,w*(f/100)-fatLost);
+      w-=dkw; f=Math.max(4,(fatMass/Math.max(w,1))*100); ws-=fatLost*waistPerKgFat;
+    }
+    pts.push({w,f,ws});
   }
   return pts;
 }

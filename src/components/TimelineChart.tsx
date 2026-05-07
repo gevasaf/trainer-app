@@ -9,7 +9,7 @@ export function TimelineChart({weeks,breakWeeks,startDate,goals,realPoints,lang}
   const svgW=620,svgH=240,padL=50,padR=20,padT=28,padB=38;
   const chartW=svgW-padL-padR,chartH=svgH-padT-padB;
   const n=weeks; if(!n||n<1) return null;
-  const proj=buildTimeline(n,breakWeeks,goals.deficit,goals.startWeight,goals.startFat||20,goals.startWaist);
+  const proj=buildTimeline(n,breakWeeks,goals.deficit,goals.startWeight,goals.startFat||20,goals.startWaist,goals.workoutsPerWeek||4,goals.proteinPerKg||1.8,goals.gender||"male");
   const groups=mergeGroups(breakWeeks);
   function xOf(i){return padL+(i/n)*chartW;}
   function wkOfDate(d){return Math.round((new Date(d).getTime()-new Date(startDate).getTime())/(7*864e5));}

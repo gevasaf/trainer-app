@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState } from "react";
-import { CLR, calcFatPct, calcTDEE, autoNutrition, nextSunday, addWeeks, fmtDate, breakWeekLabel, mergeGroups } from "../lib/utils";
+import { CLR, calcFatPct, calcTDEE, autoNutrition, nextSunday, addWeeks, fmtDate, breakWeekLabel, mergeGroups, buildTimeline } from "../lib/utils";
 import { Card, Btn, inp, InfoTip } from "./ui";
 import { TimelineChart } from "./TimelineChart";
 
@@ -22,10 +22,10 @@ export function SetupFlow({onComplete,t,lang,toggleLang}){
   const [workoutsPerWeek,setWorkoutsPerWeek]=useState(4);
   const proteinG=Math.round(p.weight*proteinPerKg);
   const nutrition=tdee?autoNutrition(tdee,deficit,proteinG,p.weight):null;
-  const activeWeeks=dur-breakWks.length,dkw=(deficit*7)/7700;
-  const projW=Math.round((p.weight-dkw*activeWeeks)*10)/10;
-  const projFat=fatPct?Math.round((fatPct-fatPct*(dkw*activeWeeks/Math.max(p.weight,1))*0.6)*10)/10:null;
-  const projWaist=Math.round((p.waist-0.09*activeWeeks)*10)/10;
+  const tlEnd=fatPct?buildTimeline(dur,breakWks,deficit,p.weight,fatPct,p.waist,workoutsPerWeek,proteinPerKg,p.gender).at(-1):null;
+  const projW=tlEnd?Math.round(tlEnd.w*10)/10:null;
+  const projFat=tlEnd?Math.round(tlEnd.f*10)/10:null;
+  const projWaist=tlEnd?Math.round(tlEnd.ws*10)/10:null;
   function toggleBreak(w){setBreakWks(prev=>prev.includes(w)?prev.filter(x=>x!==w):[...prev,w].sort((a,b)=>a-b));}
   function apply(){
     onComplete({profile,tdee,fatPct,bmi,
@@ -109,7 +109,7 @@ export function SetupFlow({onComplete,t,lang,toggleLang}){
           </Card>
           <Card style={{marginBottom:20,padding:"14px 10px"}}>
             <div style={{fontSize:12,color:CLR.muted,marginBottom:10}}>Projected timeline</div>
-            <TimelineChart weeks={dur} breakWeeks={breakWks} startDate={startDate} goals={{deficit,startWeight:p.weight,startFat:fatPct||20,startWaist:p.waist}} realPoints={[]} lang={lang}/>
+            <TimelineChart weeks={dur} breakWeeks={breakWks} startDate={startDate} goals={{deficit,startWeight:p.weight,startFat:fatPct||20,startWaist:p.waist,workoutsPerWeek,proteinPerKg,gender:p.gender}} realPoints={[]} lang={lang}/>
           </Card>
           <div style={{display:"flex",gap:10}}><Btn variant="ghost" onClick={()=>setStep(1)} style={{flex:0}}>← Back</Btn><Btn onClick={apply} style={{flex:1}}>{t.applyBtn+" 🚀"}</Btn></div>
         </div>)}
