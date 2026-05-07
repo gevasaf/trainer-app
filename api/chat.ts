@@ -48,32 +48,41 @@ function aggregateLogQuery(allEntries: any[], { dateFrom, dateTo, type, search }
   })
   if (!filtered.length) return 'No matching entries found.'
 
-  if (type === 'food' || filtered[0]?.type === 'food') {
+  const parts: string[] = []
+
+  const foodEntries = (type === 'food' || type === 'all') ? filtered.filter(e => e.type === 'food') : []
+  if (foodEntries.length) {
     const g: Record<string, any> = {}
-    filtered.forEach(e => {
+    foodEntries.forEach(e => {
       const k = (e.label ?? 'food').toLowerCase()
       if (!g[k]) g[k] = { count: 0, cal: 0, protein: 0 }
       g[k].count++; g[k].cal += e.calories ?? 0; g[k].protein += e.protein ?? 0
     })
-    return `Found ${filtered.length} food entries across ${new Set(filtered.map(e => e.date)).size} days:\n` +
+    parts.push(
+      `Food (${foodEntries.length} entries across ${new Set(foodEntries.map(e => e.date)).size} days):\n` +
       Object.entries(g).slice(0, 15).map(([k, v]: any) =>
         `  ${k}: ${v.count}x, avg ${Math.round(v.cal / v.count)} kcal, avg ${Math.round(v.protein / v.count)}g protein`
       ).join('\n')
+    )
   }
 
-  if (type === 'activity' || filtered[0]?.type === 'activity') {
+  const activityEntries = (type === 'activity' || type === 'all') ? filtered.filter(e => e.type === 'activity') : []
+  if (activityEntries.length) {
     const g: Record<string, any> = {}
-    filtered.forEach(e => {
+    activityEntries.forEach(e => {
       const k = (e.label ?? 'activity').toLowerCase()
       if (!g[k]) g[k] = { count: 0, burned: 0, min: 0 }
       g[k].count++; g[k].burned += e.calories_burned ?? 0; g[k].min += e.duration_min ?? 0
     })
-    return `Found ${filtered.length} activity entries:\n` +
+    parts.push(
+      `Activity (${activityEntries.length} entries):\n` +
       Object.entries(g).slice(0, 15).map(([k, v]: any) =>
         `  ${k}: ${v.count}x, total ${v.burned} kcal burned, ${v.min} min`
       ).join('\n')
+    )
   }
 
+  if (parts.length) return parts.join('\n\n')
   return `Found ${filtered.length} entries between ${dateFrom ?? 'start'} and ${dateTo ?? 'today'}.`
 }
 
