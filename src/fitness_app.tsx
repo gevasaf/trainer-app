@@ -14,12 +14,14 @@ const T = {
     height:"Height (cm)", weight:"Weight (kg)", waist:"Waist (cm)",
     activity:"Activity Level",
     actLevels:[
-      {label:"Sedentary",desc:"Little/no exercise",mult:1.2},
-      {label:"Lightly active",desc:"1–3 days/week",mult:1.375},
-      {label:"Moderately active",desc:"3–5 days/week",mult:1.55},
-      {label:"Very active",desc:"6–7 days/week",mult:1.725},
-      {label:"Athlete",desc:"Twice/day",mult:1.9},
+      {label:"Sedentary",desc:"Desk job, drive everywhere",mult:1.2},
+      {label:"Lightly active",desc:"Some walking, mostly sitting",mult:1.375},
+      {label:"Moderately active",desc:"On your feet most of the day",mult:1.55},
+      {label:"Very active",desc:"Physical job or very active lifestyle",mult:1.725},
+      {label:"Athlete",desc:"Hard physical work all day",mult:1.9},
     ],
+    actLevelInfo:"Pick the level that matches your everyday background movement — your commute, job, and general lifestyle. Workouts you log separately are counted on top of this.",
+    activityLogInfo:"Log intentional workouts only — gym sessions, runs, cycling, sports, etc. Everyday movement like walking to the shops or household chores is already captured in your activity level.",
     tdee:"TDEE", fatPct:"Est. Body Fat %", bmi:"BMI",
     durationWeeks:"Program duration (weeks)", breakWeeks:"Break weeks",
     calDeficit:"Avg calorie deficit / day",
@@ -63,12 +65,14 @@ const T = {
     height:"גובה (ס\"מ)", weight:"משקל (ק\"ג)", waist:"מותניים (ס\"מ)",
     activity:"רמת פעילות",
     actLevels:[
-      {label:"יושבני",desc:"מעט/ללא פעילות",mult:1.2},
-      {label:"קצת פעיל",desc:"1–3 ימים/שבוע",mult:1.375},
-      {label:"בינוני",desc:"3–5 ימים/שבוע",mult:1.55},
-      {label:"פעיל מאוד",desc:"6–7 ימים/שבוע",mult:1.725},
-      {label:"אתלט",desc:"פעמיים ביום",mult:1.9},
+      {label:"יושבני",desc:"עבודת משרד, נסיעה בכל מקום",mult:1.2},
+      {label:"קצת פעיל",desc:"קצת הליכה, בעיקר ישיבה",mult:1.375},
+      {label:"בינוני",desc:"על הרגליים רוב היום",mult:1.55},
+      {label:"פעיל מאוד",desc:"עבודה פיזית או אורח חיים פעיל מאוד",mult:1.725},
+      {label:"אתלט",desc:"עבודה פיזית קשה כל היום",mult:1.9},
     ],
+    actLevelInfo:"בחר את הרמה שמתאימה לתנועה היומיומית שלך — נסיעות, עבודה ואורח חיים כללי. אימונים שאתה מתעד בנפרד נספרים בנוסף לכך.",
+    activityLogInfo:"תעד רק אימונים מכוונים — חדר כושר, ריצה, רכיבה על אופניים, ספורט וכו'. תנועה יומיומית כמו הליכה לחנות או עבודות בית כבר נלקחת בחשבון ברמת הפעילות שלך.",
     tdee:"TDEE", fatPct:"אחוז שומן", bmi:"BMI",
     durationWeeks:"משך התוכנית (שבועות)", breakWeeks:"שבועות הפסקה",
     calDeficit:"גירעון קלורי יומי ממוצע",
@@ -185,14 +189,16 @@ function round1(n){return Math.round(n*10)/10;}
 function buildEODContext(entries, dateKey, goals, isNewWeek, allEntries) {
   const dt = dayTotals(entries, dateKey);
   const g = goals.nutrition;
-  let text = `[END OF DAY: ${dateKey}]\nCalories: ${Math.round(dt.cal)} / ${g.targetCal} kcal | Protein: ${Math.round(dt.protein)}g / ${g.protein}g | Carbs: ${Math.round(dt.carbs)}g / ${g.carbs}g | Fat: ${Math.round(dt.fat)}g / ${g.fat}g | Fiber: ${Math.round(dt.fiber)}g / ${g.fiber}g | Water: ${round1(dt.water)}L / ${g.water}L | Burned: ${Math.round(dt.burned)} kcal | Net: ${Math.round(dt.cal - dt.burned)} kcal`;
+  const netCal = Math.round(dt.cal - dt.burned);
+  let text = `[END OF DAY: ${dateKey}]\nNet calories: ${netCal} / ${g.targetCal} kcal | Eaten: ${Math.round(dt.cal)} kcal | Burned: ${Math.round(dt.burned)} kcal | Protein: ${Math.round(dt.protein)}g / ${g.protein}g | Carbs: ${Math.round(dt.carbs)}g / ${g.carbs}g | Fat: ${Math.round(dt.fat)}g / ${g.fat}g | Fiber: ${Math.round(dt.fiber)}g / ${g.fiber}g | Water: ${round1(dt.water)}L / ${g.water}L`;
   if (isNewWeek) {
     const ws = weekStart(dateKey);
     const days = [...new Set(allEntries.filter(e=>weekStart(e.date)===ws&&e.date<=dateKey).map(e=>e.date))].sort();
     if (days.length > 1) {
       const tots = days.map(d=>({date:d,...dayTotals(allEntries,d)}));
       const avg = (key) => round1(tots.reduce((s,d)=>s+(d[key]||0),0)/tots.length);
-      text += `\n\n[WEEK SUMMARY: week of ${ws} — ${days.length} logged days]\nAvg calories: ${avg("cal")} kcal (goal ${g.targetCal}) | Avg protein: ${avg("protein")}g | Avg carbs: ${avg("carbs")}g | Avg fat: ${avg("fat")}g | Avg fiber: ${avg("fiber")}g | Avg water: ${avg("water")}L | Avg burned: ${avg("burned")} kcal`;
+      const avgNet = round1(tots.reduce((s,d)=>s+(d.cal-d.burned),0)/tots.length);
+      text += `\n\n[WEEK SUMMARY: week of ${ws} — ${days.length} logged days]\nAvg net calories: ${avgNet} kcal (goal ${g.targetCal}) | Avg eaten: ${avg("cal")} kcal | Avg burned: ${avg("burned")} kcal | Avg protein: ${avg("protein")}g | Avg carbs: ${avg("carbs")}g | Avg fat: ${avg("fat")}g | Avg fiber: ${avg("fiber")}g | Avg water: ${avg("water")}L`;
     }
   }
   return text;
@@ -261,6 +267,21 @@ function Btn({children,onClick,style,disabled,variant="primary"}){
   return <button onClick={disabled?undefined:onClick} style={{borderRadius:10,padding:"10px 16px",fontSize:13,fontWeight:600,cursor:disabled?"not-allowed":"pointer",opacity:disabled?0.5:1,...v[variant],...style}}>{children}</button>;
 }
 const inp = {width:"100%",background:CLR.card2,border:"1px solid "+CLR.border,borderRadius:9,padding:"9px 12px",color:CLR.text,fontSize:14,boxSizing:"border-box"};
+
+function InfoTip({text}){
+  const [open,setOpen]=useState(false);
+  return(
+    <span style={{position:"relative",display:"inline-flex",alignItems:"center"}}>
+      <button onClick={e=>{e.stopPropagation();setOpen(o=>!o);}} style={{background:"none",border:"none",cursor:"pointer",color:CLR.muted,fontSize:14,lineHeight:1,padding:"0 2px"}}>ⓘ</button>
+      {open&&<>
+        <div onClick={()=>setOpen(false)} style={{position:"fixed",inset:0,zIndex:299}}/>
+        <div style={{position:"absolute",bottom:"calc(100% + 6px)",left:"50%",transform:"translateX(-50%)",background:CLR.card,border:"1px solid "+CLR.border,borderRadius:10,padding:"10px 12px",fontSize:12,color:CLR.muted,lineHeight:1.5,width:240,zIndex:300,boxShadow:"0 4px 20px rgba(0,0,0,0.5)"}}>
+          {text}
+        </div>
+      </>}
+    </span>
+  );
+}
 
 function Ring({value,max,color,label,unit,size=68}){
   const pct=Math.min(1,max>0?value/max:0),over=value>max&&max>0;
@@ -435,7 +456,8 @@ function SetupFlow({onComplete,t,lang,toggleLang}){
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:12}}>
             {[[t.height,"height"],[t.weight,"weight"],[t.waist,"waist"]].map(([lbl,k])=><div key={k}><div style={{fontSize:12,color:CLR.muted,marginBottom:5}}>{lbl}</div><input type="number" value={p[k]} onChange={e=>setP(x=>({...x,[k]:+e.target.value}))} style={inp}/></div>)}
           </div>
-          <div style={{marginBottom:16}}><div style={{fontSize:12,color:CLR.muted,marginBottom:8}}>{t.activity}</div>
+          <div style={{marginBottom:16}}>
+            <div style={{fontSize:12,color:CLR.muted,marginBottom:8,display:"flex",alignItems:"center",gap:4}}>{t.activity}<InfoTip text={t.actLevelInfo}/></div>
             {t.actLevels.map((a,i)=><button key={i} onClick={()=>setP(x=>({...x,actIdx:i}))} style={{display:"flex",justifyContent:"space-between",alignItems:"center",width:"100%",padding:"10px 14px",marginBottom:6,background:p.actIdx===i?CLR.purpleBg:CLR.card2,border:"1px solid "+(p.actIdx===i?CLR.purple:CLR.border),borderRadius:10,color:p.actIdx===i?"#fff":CLR.muted,cursor:"pointer",textAlign:"start"}}><span style={{fontSize:13,fontWeight:p.actIdx===i?600:400}}>{a.label}</span><span style={{fontSize:11,color:p.actIdx===i?"#c4b5fd":CLR.dim}}>{a.desc}</span></button>)}
           </div>
           {tdee&&<Card style={{marginBottom:20,display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,textAlign:"center"}}>
@@ -565,7 +587,7 @@ function AddEntryModal({type,t,weightKg,entries,onAdd,onClose}){
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:16}}>
       <div style={{background:CLR.card,borderRadius:16,padding:20,width:"100%",maxWidth:420,border:"1px solid "+CLR.border}}>
-        <div style={{fontSize:15,fontWeight:600,marginBottom:14,color:CLR.purple}}>{type==="food"?t.addFood:t.addActivity}</div>
+        <div style={{fontSize:15,fontWeight:600,marginBottom:14,color:CLR.purple,display:"flex",alignItems:"center",gap:6}}>{type==="food"?t.addFood:t.addActivity}{type==="activity"&&<InfoTip text={t.activityLogInfo}/>}</div>
 
         <textarea value={text} onChange={ev=>{if(!locked)setText(ev.target.value);}} readOnly={locked}
           placeholder={type==="food"?t.describeFood:t.describeActivity} rows={3}
@@ -631,7 +653,7 @@ function DashboardTab({t,appData,entries,setEntries,onEOD}){
     setEodConfirm(false);
   }
   const rings=[
-    {label:t.calories,value:tots.cal,max:goals.targetCal,color:CLR.purple,unit:""},
+    {label:t.calories,value:net,max:goals.targetCal,color:CLR.purple,unit:""},
     {label:t.protein,value:tots.protein,max:goals.protein,color:CLR.green,unit:"g"},
     {label:t.carbs,value:tots.carbs,max:goals.carbs,color:CLR.amber,unit:"g"},
     {label:t.fat,value:tots.fat,max:goals.fat,color:CLR.red,unit:"g"},
@@ -647,7 +669,7 @@ function DashboardTab({t,appData,entries,setEntries,onEOD}){
       {/* Fixed top: stats + rings + actions */}
       <div style={{flexShrink:0,padding:"12px 16px 0"}}>
         <Card style={{marginBottom:10,display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 14px"}}>
-          {[[t.eaten,Math.round(tots.cal),"kcal",CLR.purple],[t.burned,Math.round(tots.burned),"kcal",CLR.amber],[t.net,net,"kcal",net>(goals.targetCal*0.1)?CLR.red:CLR.green]].map(([l,v,u,c])=>(
+          {[[t.eaten,Math.round(tots.cal),"kcal",CLR.purple],[t.burned,Math.round(tots.burned),"kcal",CLR.amber],[t.net,net,"kcal",net>goals.targetCal?CLR.red:CLR.green]].map(([l,v,u,c])=>(
             <div key={l} style={{textAlign:"center"}}><div style={{fontSize:11,color:CLR.muted}}>{l}</div><div style={{fontSize:20,fontWeight:700,color:c}}>{v}</div><div style={{fontSize:10,color:CLR.dim}}>{u}</div></div>))}
         </Card>
         <Card style={{marginBottom:10,padding:"12px 8px"}}>
@@ -780,7 +802,7 @@ function AssistantTab({t,appData,entries,bodyPoints,chatHistory,setChatHistory,s
                   {msg.eventType==="eod"&&msg.data&&(()=>{
                     const d=msg.data,g=appData.goals.nutrition;
                     return<div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6}}>
-                      {[["🔥","Cal",Math.round(d.cal),g.targetCal,"kcal",CLR.purple],["💪","Prot",Math.round(d.protein),g.protein,"g",CLR.green],["💧","Water",round1(d.water),g.water,"L",CLR.blue],["🌾","Carbs",Math.round(d.carbs),g.carbs,"g",CLR.amber],["🥑","Fat",Math.round(d.fat),g.fat,"g",CLR.red],["🏃","Burned",Math.round(d.burned),"-","kcal",CLR.teal]].map(([ico,lbl,v,mx,u,c])=>(
+                      {[["🔥","Net cal",d.net??Math.round(d.cal-d.burned),g.targetCal,"kcal",CLR.purple],["💪","Prot",Math.round(d.protein),g.protein,"g",CLR.green],["💧","Water",round1(d.water),g.water,"L",CLR.blue],["🌾","Carbs",Math.round(d.carbs),g.carbs,"g",CLR.amber],["🥑","Fat",Math.round(d.fat),g.fat,"g",CLR.red],["🏃","Burned",Math.round(d.burned),"-","kcal",CLR.teal]].map(([ico,lbl,v,mx,u,c])=>(
                         <div key={lbl} style={{background:CLR.card,borderRadius:8,padding:"6px 8px",textAlign:"center"}}>
                           <div style={{fontSize:10,color:CLR.muted}}>{ico} {lbl}</div>
                           <div style={{fontSize:14,fontWeight:700,color:v>mx&&mx!=="-"?CLR.red:c}}>{v}</div>
@@ -799,7 +821,7 @@ function AssistantTab({t,appData,entries,bodyPoints,chatHistory,setChatHistory,s
                   {msg.eventType==="week"&&msg.data&&(()=>{
                     const d=msg.data,g=appData.goals.nutrition;
                     return<div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6}}>
-                      {[["Avg Cal",Math.round(d.cal),g.targetCal,"kcal",CLR.purple],["Avg Prot",Math.round(d.protein),g.protein,"g",CLR.green],["Avg Water",round1(d.water),g.water,"L",CLR.blue]].map(([lbl,v,mx,u,c])=>(
+                      {[["Avg net cal",Math.round(d.net??d.cal),g.targetCal,"kcal",CLR.purple],["Avg Prot",Math.round(d.protein),g.protein,"g",CLR.green],["Avg Water",round1(d.water),g.water,"L",CLR.blue]].map(([lbl,v,mx,u,c])=>(
                         <div key={lbl} style={{background:CLR.card,borderRadius:8,padding:"6px 8px",textAlign:"center"}}>
                           <div style={{fontSize:10,color:CLR.muted}}>{lbl}</div><div style={{fontSize:14,fontWeight:700,color:c}}>{v}</div><div style={{fontSize:10,color:CLR.dim}}>/{mx} {u}</div>
                         </div>))}</div>;
@@ -966,14 +988,15 @@ function MainApp({data,t,lang,toggleLang,onReset,greetOnMount}){
     const isNewWeek = weekStart(dateKey) !== weekStart(todayKey());
     const eodCtx=buildEODContext(allEntries,dateKey,data.goals,isNewWeek,allEntries);
     const dt=dayTotals(allEntries,dateKey);
-    const eventCard={role:"event",eventType:"eod",data:dt,date:dateKey,ts:eodEntry.ts};
+    const eventCard={role:"event",eventType:"eod",data:{...dt,net:Math.round(dt.cal-dt.burned)},date:dateKey,ts:eodEntry.ts};
     let newHistory=[...chatHistory,eventCard];
     if(isNewWeek){
       const ws=weekStart(dateKey);
       const days=[...new Set(allEntries.filter(e=>weekStart(e.date)===ws).map(e=>e.date))].sort();
       const tots=days.map(d=>dayTotals(allEntries,d));
       const avg=k=>round1(tots.reduce((s,d)=>s+(d[k]||0),0)/Math.max(tots.length,1));
-      newHistory=[...newHistory,{role:"event",eventType:"week",data:{cal:avg("cal"),protein:avg("protein"),carbs:avg("carbs"),fat:avg("fat"),fiber:avg("fiber"),water:avg("water"),burned:avg("burned")},ts:eodEntry.ts}];
+      const avgNet=round1(tots.reduce((s,d)=>s+(d.cal-d.burned),0)/Math.max(tots.length,1));
+      newHistory=[...newHistory,{role:"event",eventType:"week",data:{cal:avg("cal"),protein:avg("protein"),carbs:avg("carbs"),fat:avg("fat"),fiber:avg("fiber"),water:avg("water"),burned:avg("burned"),net:avgNet},ts:eodEntry.ts}];
     }
     setChatHistory(newHistory);
     try{
