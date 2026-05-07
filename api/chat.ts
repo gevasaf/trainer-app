@@ -137,9 +137,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .filter((m: any) => (m.role === 'user' || m.role === 'assistant') && m.content)
     .map((m: any) => ({ role: m.role as 'user' | 'assistant', content: m.content as string }))
 
-  // Drop leading assistant messages (can appear when event cards are filtered out before them)
+  // Anthropic requires messages to start with 'user'. If history starts with an assistant
+  // message (e.g. a greeting), prepend a synthetic user turn so it's preserved in context.
   const firstUserIdx = rawMessages.findIndex((m: any) => m.role === 'user')
-  const trimmed = firstUserIdx <= 0 ? rawMessages : rawMessages.slice(firstUserIdx)
+  const trimmed = firstUserIdx <= 0
+    ? rawMessages
+    : [{ role: 'user' as const, content: '[conversation started]' }, ...rawMessages]
 
   // Deduplicate consecutive same-role messages (keep last)
   const apiMessages = trimmed.reduce((acc: any[], msg: any) => {

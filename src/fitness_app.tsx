@@ -786,12 +786,6 @@ function AssistantTab({t,appData,entries,bodyPoints,chatHistory,setChatHistory,s
     <div style={{height:"100%",display:"flex",flexDirection:"column",overflow:"hidden"}}>
       {/* Scrollable messages */}
       <div style={{flex:1,overflowY:"auto",padding:"12px 16px 8px"}}>
-        {chatHistory.length===0&&(
-          <div style={{textAlign:"center",padding:"40px 20px",color:CLR.dim}}>
-            <div style={{fontSize:32,marginBottom:8}}>🤖</div>
-            <div style={{fontSize:14,color:CLR.muted}}>Your AI trainer is ready.</div>
-            <div style={{fontSize:12,marginTop:4}}>Ask anything about your progress, food, training, or plans.</div>
-          </div>)}
         {chatHistory.map((msg,i)=>{
           if(msg.hidden) return null;
           if(msg.eventType){
