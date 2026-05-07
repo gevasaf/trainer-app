@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { CLR } from "../lib/utils";
 
 export function Card({children,style}){return <div style={{background:CLR.card,borderRadius:14,padding:18,border:"1px solid "+CLR.border,...style}}>{children}</div>;}
@@ -9,14 +9,25 @@ export function Btn({children,onClick,style,disabled,variant="primary"}){
 }
 export const inp = {width:"100%",background:CLR.card2,border:"1px solid "+CLR.border,borderRadius:9,padding:"9px 12px",color:CLR.text,fontSize:14,boxSizing:"border-box"};
 
-export function InfoTip({text}){
+export function InfoTip({text,below=false}){
   const [open,setOpen]=useState(false);
+  const btnRef=useRef(null);
+  const [hAlign,setHAlign]=useState("left");
+  function toggle(e){
+    e.stopPropagation();
+    if(!open&&btnRef.current){
+      const rect=btnRef.current.getBoundingClientRect();
+      setHAlign(rect.left>window.innerWidth/2?"right":"left");
+    }
+    setOpen(o=>!o);
+  }
+  const vPos=below?{top:"calc(100% + 6px)"}:{bottom:"calc(100% + 6px)"};
   return(
     <span style={{position:"relative",display:"inline-flex",alignItems:"center"}}>
-      <button onClick={e=>{e.stopPropagation();setOpen(o=>!o);}} style={{background:"none",border:"none",cursor:"pointer",color:CLR.muted,fontSize:14,lineHeight:1,padding:"0 2px"}}>ⓘ</button>
+      <button ref={btnRef} onClick={toggle} style={{background:"none",border:"none",cursor:"pointer",color:CLR.muted,fontSize:14,lineHeight:1,padding:"0 2px"}}>ⓘ</button>
       {open&&<>
         <div onClick={()=>setOpen(false)} style={{position:"fixed",inset:0,zIndex:299}}/>
-        <div style={{position:"absolute",bottom:"calc(100% + 6px)",left:0,background:CLR.card,border:"1px solid "+CLR.border,borderRadius:10,padding:"10px 12px",fontSize:12,color:CLR.muted,lineHeight:1.5,width:240,zIndex:300,boxShadow:"0 4px 20px rgba(0,0,0,0.5)"}}>
+        <div style={{position:"absolute",...vPos,...(hAlign==="right"?{right:0}:{left:0}),background:CLR.card,border:"1px solid "+CLR.border,borderRadius:10,padding:"10px 12px",fontSize:12,color:CLR.muted,lineHeight:1.5,width:240,zIndex:300,boxShadow:"0 4px 20px rgba(0,0,0,0.5)"}}>
           {text}
         </div>
       </>}

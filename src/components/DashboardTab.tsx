@@ -151,7 +151,7 @@ export function DashboardTab({t,appData,entries,setEntries,onEOD}){
             <div style={{fontSize:14,fontWeight:700,color:CLR.blue,marginBottom:2}}>🌊 Break Week {currentWeek}</div>
             <div style={{fontSize:11,color:"#7bafd4"}}>+{Math.round((appData.goals.deficit||0)/2)} kcal surplus · {workoutTarget} workout{workoutTarget!==1?"s":""} · Keep logging normally</div>
           </div>
-          <InfoTip text={`Break weeks use a small calorie surplus (your deficit ÷ 2 = +${Math.round((appData.goals.deficit||0)/2)} kcal/day, target ${breakCal} kcal) and half your usual workouts (${workoutTarget} this week) to let your body recover while minimising fat gain. Keep logging food and activity as normal — the targets above already reflect this week's goals.`}/>
+          <InfoTip below text={`Break weeks use a small calorie surplus (your deficit ÷ 2 = +${Math.round((appData.goals.deficit||0)/2)} kcal/day, target ${breakCal} kcal) and half your usual workouts (${workoutTarget} this week) to let your body recover while minimising fat gain. Keep logging food and activity as normal — the targets above already reflect this week's goals.`}/>
         </div>}
         <Card style={{marginBottom:10,display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 14px"}}>
           {[[t.eaten,Math.round(tots.cal),"kcal",CLR.purple],[t.burned,Math.round(tots.burned),"kcal",CLR.amber],[t.net,net,"kcal",net>effectiveCal?CLR.red:CLR.green]].map(([l,v,u,c])=>(
