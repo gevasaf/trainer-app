@@ -197,6 +197,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.json({ text, usedTool: false })
     }
 
+    if (mode === 'greeting') {
+      messages.push({ role: 'user', content: "The user just finished setting up their profile and program. Write them a warm, personalised welcome message — introduce yourself, acknowledge their specific goal and timeline, and give one concrete tip to get started. Keep it under 120 words." })
+      const response = await anthropic.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 400,
+        system: systemPrompt,
+        messages,
+      })
+      const text = response.content.filter(b => b.type === 'text').map(b => (b as Anthropic.TextBlock).text).join('') || '…'
+      return res.json({ text, usedTool: false })
+    }
+
     return res.status(400).json({ error: 'Unknown mode' })
   } catch (err: any) {
     console.error(err)

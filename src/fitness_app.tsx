@@ -542,46 +542,45 @@ function AddEntryModal({type,t,weightKg,entries,onAdd,onClose}){
     setLoading(false);
   }
 
-  async function analyze(txt=text){
-    if(!txt.trim())return;
+  async function analyze(txt){
+    const s=String(txt||"").trim();
+    if(!s)return;
     setLocked(true);
-    const cached=(entries||[]).find(e=>e.type===type&&(e.label||"").toLowerCase()===txt.trim().toLowerCase());
+    const cached=(entries||[]).find(e=>e.type===type&&(e.label||"").toLowerCase()===s.toLowerCase());
     if(cached){setPreview(previewFromEntry(cached));return;}
-    await runAI(txt);
+    await runAI(s);
   }
 
   function confirm(){if(!preview||preview.error)return;onAdd({...preview,ts:Date.now(),date:todayKey()});onClose();}
 
   const numInp={background:"none",border:"none",textAlign:"center",fontSize:14,fontWeight:700,padding:0,outline:"none",width:"100%"};
-  function NField({ico,field,unit,color}){
-    return(
-      <div style={{textAlign:"center",background:CLR.card,borderRadius:8,padding:"6px 4px"}}>
-        <div style={{fontSize:12}}>{ico}</div>
-        <input type="number" value={preview[field]??0} onChange={e=>setField(field,e.target.value)} style={{...numInp,color}}/>
-        <div style={{fontSize:10,color:CLR.dim}}>{unit}</div>
-      </div>
-    );
-  }
+  const nf=(ico,field,unit,color)=>(
+    <div key={field} style={{textAlign:"center",background:CLR.card,borderRadius:8,padding:"6px 4px"}}>
+      <div style={{fontSize:12}}>{ico}</div>
+      <input type="number" value={preview?.[field]??0} onChange={ev=>setField(field,ev.target.value)} style={{...numInp,color}}/>
+      <div style={{fontSize:10,color:CLR.dim}}>{unit}</div>
+    </div>
+  );
 
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:16}}>
       <div style={{background:CLR.card,borderRadius:16,padding:20,width:"100%",maxWidth:420,border:"1px solid "+CLR.border}}>
         <div style={{fontSize:15,fontWeight:600,marginBottom:14,color:CLR.purple}}>{type==="food"?t.addFood:t.addActivity}</div>
 
-        <textarea value={text} onChange={e=>{if(!locked)setText(e.target.value);}} readOnly={locked}
+        <textarea value={text} onChange={ev=>{if(!locked)setText(ev.target.value);}} readOnly={locked}
           placeholder={type==="food"?t.describeFood:t.describeActivity} rows={3}
           style={{...inp,resize:"none",marginBottom:4,fontSize:13,opacity:locked?0.55:1}}/>
 
         {suggestions.length>0&&(
           <div style={{background:CLR.card2,border:"1px solid "+CLR.border,borderRadius:10,marginBottom:8,overflow:"hidden"}}>
-            {suggestions.map((e,i)=>(
-              <button key={i} onClick={()=>pickSuggestion(e)}
+            {suggestions.map((sg,i)=>(
+              <button key={i} onClick={()=>pickSuggestion(sg)}
                 style={{display:"block",width:"100%",textAlign:"left",background:"none",border:"none",borderTop:i?("1px solid "+CLR.border):"none",color:CLR.text,padding:"8px 12px",cursor:"pointer",fontSize:13}}>
-                {e.label}
+                {sg.label}
               </button>))}
           </div>)}
 
-        {!locked&&<Btn onClick={analyze} disabled={!text.trim()} style={{width:"100%",marginBottom:8}}>✨ Analyze</Btn>}
+        {!locked&&<Btn onClick={()=>analyze(text)} disabled={!text.trim()} style={{width:"100%",marginBottom:8}}>✨ Analyze</Btn>}
         {locked&&!preview&&<div style={{textAlign:"center",color:CLR.muted,fontSize:13,marginBottom:8,padding:"8px 0"}}>{t.analyzing}</div>}
 
         {preview&&!preview.error&&(
@@ -589,16 +588,16 @@ function AddEntryModal({type,t,weightKg,entries,onAdd,onClose}){
             <div style={{fontWeight:600,marginBottom:8,color:CLR.text}}>{preview.label}</div>
             {type==="food"
               ?<div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6}}>
-                <NField ico="🔥" field="calories" unit="kcal" color={CLR.purple}/>
-                <NField ico="💪" field="protein" unit="g prot" color={CLR.green}/>
-                <NField ico="🌾" field="carbs" unit="g carbs" color={CLR.amber}/>
-                <NField ico="🥑" field="fat" unit="g fat" color={CLR.red}/>
-                <NField ico="🌿" field="fiber" unit="g fiber" color={CLR.teal}/>
-                <NField ico="💧" field="water" unit="L" color={CLR.blue}/>
+                {nf("🔥","calories","kcal",CLR.purple)}
+                {nf("💪","protein","g prot",CLR.green)}
+                {nf("🌾","carbs","g carbs",CLR.amber)}
+                {nf("🥑","fat","g fat",CLR.red)}
+                {nf("🌿","fiber","g fiber",CLR.teal)}
+                {nf("💧","water","L",CLR.blue)}
               </div>
               :<div style={{display:"flex",gap:12}}>
-                <NField ico="🔥" field="calories_burned" unit="kcal burned" color={CLR.amber}/>
-                <NField ico="⏱" field="duration_min" unit="minutes" color={CLR.blue}/>
+                {nf("🔥","calories_burned","kcal burned",CLR.amber)}
+                {nf("⏱","duration_min","minutes",CLR.blue)}
               </div>}
           </div>)}
 
@@ -654,10 +653,10 @@ function DashboardTab({t,appData,entries,setEntries,onEOD}){
         <Card style={{marginBottom:10,padding:"12px 8px"}}>
           <div style={{display:"flex",justifyContent:"space-around",flexWrap:"wrap",gap:6}}>{rings.map(r=><Ring key={r.label} {...r}/>)}</div>
         </Card>
-        {!eod&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:10}}>
+        {!eod&&<div style={{display:"grid",gridTemplateColumns:new Date().getHours()>=19?"1fr 1fr 1fr":"1fr 1fr",gap:8,marginBottom:10}}>
           <Btn onClick={()=>setModal("food")} style={{fontSize:12,padding:"10px 6px"}}>🍽 {t.addFood}</Btn>
           <Btn onClick={()=>setModal("activity")} style={{fontSize:12,padding:"10px 6px",background:CLR.card2,color:CLR.green,border:"1px solid "+CLR.border}}>🏃 {t.addActivity}</Btn>
-          <Btn onClick={()=>setEodConfirm(true)} variant="ghost" style={{fontSize:12,padding:"10px 6px",color:CLR.amber,border:"1px solid #4a3800"}}>🌙 {t.endOfDay}</Btn>
+          {new Date().getHours()>=19&&<Btn onClick={()=>setEodConfirm(true)} variant="ghost" style={{fontSize:12,padding:"10px 6px",color:CLR.amber,border:"1px solid #4a3800"}}>🌙 {t.endOfDay}</Btn>}
         </div>}
         {eod&&<div style={{background:"#1a1a10",border:"1px solid #4a3800",borderRadius:12,padding:"10px 14px",marginBottom:10,fontSize:13,color:CLR.amber,textAlign:"center"}}>🌙 {t.endOfDayMsg}</div>}
       </div>
@@ -812,7 +811,7 @@ function AssistantTab({t,appData,entries,bodyPoints,chatHistory,setChatHistory,s
           const isUser=msg.role==="user";
           return(
             <div key={i} style={{display:"flex",flexDirection:isUser?"row-reverse":"row",marginBottom:10}}>
-              <div style={{maxWidth:"82%",background:isUser?CLR.purpleBg:CLR.card2,borderRadius:isUser?"16px 16px 4px 16px":"16px 16px 16px 4px",padding:"10px 14px",fontSize:13,lineHeight:1.6,color:isUser?"#e9d5ff":CLR.text,border:isUser?"none":"1px solid "+CLR.border}}>
+              <div style={{maxWidth:"82%",background:isUser?CLR.purpleBg:CLR.card2,borderRadius:isUser?"16px 16px 4px 16px":"16px 16px 16px 4px",padding:"10px 14px",fontSize:13,lineHeight:1.6,color:isUser?"#e9d5ff":CLR.text,border:isUser?"none":"1px solid "+CLR.border,whiteSpace:"pre-wrap",wordBreak:"break-word"}}>
                 {msg.content}
               </div>
             </div>
@@ -914,7 +913,7 @@ function MenuModal({t,lang,toggleLang,onDeleteData,onClose}){
 }
 
 // ─── MAIN APP ─────────────────────────────────────────────────────────────────
-function MainApp({data,t,lang,toggleLang,onReset}){
+function MainApp({data,t,lang,toggleLang,onReset,greetOnMount}){
   const [tab,setTab]=useState(0);
   const [entries,setEntries]=useState([]);
   const [bodyPoints,setBodyPoints]=useState([]);
@@ -943,6 +942,13 @@ function MainApp({data,t,lang,toggleLang,onReset}){
   useEffect(()=>{ if(!storeReady)return; storageSet("entries",JSON.stringify(entries)).catch(()=>{}); },[entries,storeReady]);
   useEffect(()=>{ if(!storeReady)return; storageSet("bodyPoints",JSON.stringify(bodyPoints)).catch(()=>{}); },[bodyPoints,storeReady]);
   useEffect(()=>{ if(!storeReady)return; storageSet("chatHistory",JSON.stringify(chatHistory)).catch(()=>{}); },[chatHistory,storeReady]);
+
+  useEffect(()=>{
+    if(!storeReady||!greetOnMount)return;
+    callAssistant("greeting",null,[],data,entries,bodyPoints,null)
+      .then(res=>{if(res?.text){setChatHistory([{role:"assistant",content:res.text,ts:Date.now()}]);setUnreadCount(1);}})
+      .catch(()=>{});
+  },[storeReady]);
 
   useEffect(()=>{
     if(!storeReady)return;
@@ -1038,6 +1044,7 @@ export default function FitnessApp(){
   const [lang,setLang]=useState("en");
   const [appData,setAppData]=useState(null);
   const [ready,setReady]=useState(false);
+  const [greetOnMount,setGreetOnMount]=useState(false);
   const t=T[lang];
   const toggleLang=()=>setLang(l=>l==="en"?"he":"en");
   useEffect(()=>{
@@ -1048,10 +1055,11 @@ export default function FitnessApp(){
   },[]);
   async function handleComplete(data){
     setAppData(data);
+    setGreetOnMount(true);
     try{await storageSet("appData",JSON.stringify(data));}catch(e){}
   }
   function handleReset(){setAppData(null);}
   if(!ready)return<div style={{minHeight:"100dvh",background:CLR.bg,display:"flex",alignItems:"center",justifyContent:"center",color:CLR.muted,fontSize:14}}>Loading…</div>;
   if(!appData)return<SetupFlow onComplete={handleComplete} t={t} lang={lang} toggleLang={toggleLang}/>;
-  return<MainApp data={appData} t={t} lang={lang} toggleLang={toggleLang} onReset={handleReset}/>;
+  return<MainApp data={appData} t={t} lang={lang} toggleLang={toggleLang} onReset={handleReset} greetOnMount={greetOnMount}/>;
 }
