@@ -60,7 +60,7 @@ export function buildTimeline(weeks,breakWeeks,deficit,sw,sf,sws){
     const b=breakWeeks.includes(i);
     if(b){w+=dkw*0.15;f+=0.08;ws+=0.06;}
     else{w-=dkw;f-=Math.max(0,(f*dkw/Math.max(w,1))*0.65);ws-=0.09;}
-    pts.push({w:Math.round(w*10)/10,f:Math.max(4,Math.round(f*10)/10),ws:Math.round(ws*10)/10});
+    pts.push({w,f:Math.max(4,f),ws});
   }
   return pts;
 }
