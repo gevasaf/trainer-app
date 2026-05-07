@@ -1,0 +1,10 @@
+node_modules
+dist
+.vercel
+.claude
+*.log
+
+# local env files
+.env
+.env.local
+.env.*.local
