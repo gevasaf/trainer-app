@@ -755,9 +755,8 @@ function TimelineTab({t,appData,bodyPoints,setBodyPoints,onMeasurement,lang}){
 }
 
 // ─── ASSISTANT TAB ────────────────────────────────────────────────────────────
-function AssistantTab({t,appData,entries,bodyPoints,chatHistory,setChatHistory,setUnreadCount,lang}){
+function AssistantTab({t,appData,entries,bodyPoints,chatHistory,setChatHistory,setUnreadCount,lang,status,setStatus}){
   const [input,setInput]=useState("");
-  const [status,setStatus]=useState(null);
   const bottomRef=useRef(null);
 
   useEffect(()=>{
@@ -794,6 +793,7 @@ function AssistantTab({t,appData,entries,bodyPoints,chatHistory,setChatHistory,s
             <div style={{fontSize:12,marginTop:4}}>Ask anything about your progress, food, training, or plans.</div>
           </div>)}
         {chatHistory.map((msg,i)=>{
+          if(msg.hidden) return null;
           if(msg.eventType){
             return(
               <div key={i} style={{margin:"10px 0"}}>
@@ -940,6 +940,7 @@ function MainApp({data,t,lang,toggleLang,onReset,greetOnMount}){
   const [unreadCount,setUnreadCount]=useState(0);
   const [storeReady,setStoreReady]=useState(false);
   const [menuOpen,setMenuOpen]=useState(false);
+  const [assistantStatus,setAssistantStatus]=useState(null);
   const lastEODCheck=useRef(null);
 
   async function handleDeleteData(){
@@ -964,9 +965,11 @@ function MainApp({data,t,lang,toggleLang,onReset,greetOnMount}){
 
   useEffect(()=>{
     if(!storeReady||!greetOnMount)return;
+    setAssistantStatus("thinking");
     callAssistant("greeting",null,[],data,entries,bodyPoints,null)
-      .then(res=>{if(res?.text){setChatHistory([{role:"assistant",content:res.text,ts:Date.now()}]);setUnreadCount(1);}})
-      .catch(()=>{});
+      .then(res=>{if(res?.text){setChatHistory([{role:"user",content:"[session start]",hidden:true,ts:Date.now()},{role:"assistant",content:res.text,ts:Date.now()}]);setUnreadCount(1);}})
+      .catch(()=>{})
+      .finally(()=>setAssistantStatus(null));
   },[storeReady]);
 
   useEffect(()=>{
@@ -984,6 +987,7 @@ function MainApp({data,t,lang,toggleLang,onReset,greetOnMount}){
   },[storeReady]);
 
   async function triggerEODEvent(eodEntry, allEntries) {
+    setAssistantStatus("thinking");
     const dateKey=eodEntry.date;
     const isNewWeek = weekStart(dateKey) !== weekStart(todayKey());
     const eodCtx=buildEODContext(allEntries,dateKey,data.goals,isNewWeek,allEntries);
@@ -1004,9 +1008,11 @@ function MainApp({data,t,lang,toggleLang,onReset,greetOnMount}){
       setChatHistory(h=>[...h,{role:"assistant",content:res.text,ts:Date.now()}]);
       setUnreadCount(c=>c+1);
     }catch(e){}
+    setAssistantStatus(null);
   }
 
   async function handleMeasurement(pt){
+    setAssistantStatus("thinking");
     const ctx=buildMeasurementContext(bodyPoints,pt);
     const eventCard={role:"event",eventType:"measurement",data:pt,ts:pt.ts};
     const newHistory=[...chatHistory,eventCard];
@@ -1016,6 +1022,7 @@ function MainApp({data,t,lang,toggleLang,onReset,greetOnMount}){
       setChatHistory(h=>[...h,{role:"assistant",content:res.text,ts:Date.now()}]);
       setUnreadCount(c=>c+1);
     }catch(e){}
+    setAssistantStatus(null);
   }
 
   const tabs=[t.dashboard,t.timeline,t.assistant,t.log];
@@ -1055,7 +1062,7 @@ function MainApp({data,t,lang,toggleLang,onReset,greetOnMount}){
       <div style={{width:"100%",maxWidth:680,flex:1,overflow:"hidden",display:"flex",flexDirection:"column"}}>
         {tab===0&&<DashboardTab t={t} appData={data} entries={entries} setEntries={setEntries} onEOD={triggerEODEvent}/>}
         {tab===1&&<TimelineTab t={t} appData={data} bodyPoints={bodyPoints} setBodyPoints={setBodyPoints} onMeasurement={handleMeasurement} lang={lang}/>}
-        {tab===2&&<AssistantTab t={t} appData={data} entries={entries} bodyPoints={bodyPoints} chatHistory={chatHistory} setChatHistory={setChatHistory} unreadCount={unreadCount} setUnreadCount={setUnreadCount} lang={lang}/>}
+        {tab===2&&<AssistantTab t={t} appData={data} entries={entries} bodyPoints={bodyPoints} chatHistory={chatHistory} setChatHistory={setChatHistory} unreadCount={unreadCount} setUnreadCount={setUnreadCount} lang={lang} status={assistantStatus} setStatus={setAssistantStatus}/>}
         {tab===3&&<LogTab t={t} entries={entries} bodyPoints={bodyPoints}/>}
       </div>
     </div>
