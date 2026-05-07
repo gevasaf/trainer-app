@@ -31,6 +31,11 @@ export async function storageGet(key: string): Promise<{ value: string } | null>
   return { value: typeof val === 'string' ? val : JSON.stringify(val) }
 }
 
+export async function clearUserData(): Promise<void> {
+  if (!userId) return
+  await supabase.from('user_data').delete().eq('user_id', userId)
+}
+
 export async function storageSet(key: string, value: string): Promise<void> {
   if (!userId) return
   const col = COL[key] ?? key

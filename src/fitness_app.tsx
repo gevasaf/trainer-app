@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { useState, useRef, useEffect } from "react";
 import React from "react";
-import { storageGet, storageSet } from "./lib/storage";
+import { storageGet, storageSet, clearUserData } from "./lib/storage";
 import { getSession } from "./lib/supabase";
 
 // ─── TRANSLATIONS ─────────────────────────────────────────────────────────────
@@ -46,6 +46,14 @@ const T = {
     thinking:"Thinking…", searching:"Searching logs…",
     endOfDaySummary:"End of day", weekSummary:"Week summary", newMeasurement:"New measurement",
     unread:"unread",
+    calories:"Calories",
+    settings:"Settings", language:"Language",
+    deleteData:"Delete all data", deleteDataTitle:"Delete all data?",
+    deleteDataMsg:"This will permanently erase all your logs, measurements, and training program. Your account (email & password) stays. You'll be taken back to setup.",
+    deleteDataConfirm:"Yes, delete everything",
+    eodConfirmTitle:"End your day?",
+    eodConfirmMsg:"This means you're done eating for today. You won't be able to add food until tomorrow.",
+    eodConfirmBtn:"Yes, end my day",
   },
   he: {
     dir:"rtl", setup:"הגדרה", dashboard:"לוח בקרה", timeline:"ציר זמן",
@@ -87,6 +95,14 @@ const T = {
     thinking:"חושב…", searching:"מחפש ביומן…",
     endOfDaySummary:"סיכום יום", weekSummary:"סיכום שבוע", newMeasurement:"מדידה חדשה",
     unread:"חדש",
+    calories:"קלוריות",
+    settings:"הגדרות", language:"שפה",
+    deleteData:"מחק את כל הנתונים", deleteDataTitle:"למחוק את כל הנתונים?",
+    deleteDataMsg:"פעולה זו תמחק לצמיתות את כל היומנים, המדידות ותוכנית האימון שלך. החשבון (אימייל וסיסמה) יישמר. תועבר חזרה למסך ההגדרה.",
+    deleteDataConfirm:"כן, מחק הכל",
+    eodConfirmTitle:"לסיים את היום?",
+    eodConfirmMsg:"כלומר סיימת לאכול להיום. לא תוכל להוסיף אוכל עד מחר.",
+    eodConfirmBtn:"כן, לסיים",
   }
 };
 
@@ -448,37 +464,119 @@ function SetupFlow({onComplete,t,lang,toggleLang}){
   );
 }
 
+// ─── CONFIRM MODAL ────────────────────────────────────────────────────────────
+function ConfirmModal({title,message,confirmText,danger=false,onConfirm,onCancel}){
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300,padding:16}}>
+      <div style={{background:CLR.card,borderRadius:16,padding:24,width:"100%",maxWidth:380,border:"1px solid "+CLR.border}}>
+        <div style={{fontSize:16,fontWeight:700,color:CLR.text,marginBottom:10}}>{title}</div>
+        <div style={{fontSize:13,color:CLR.muted,lineHeight:1.6,marginBottom:20}}>{message}</div>
+        <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+          <Btn variant="ghost" onClick={onCancel}>Cancel</Btn>
+          <Btn onClick={onConfirm} style={{background:danger?"#7f1d1d":CLR.purpleDark,color:"#fff",border:"none"}}>{confirmText}</Btn>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── ADD ENTRY MODAL ──────────────────────────────────────────────────────────
-function AddEntryModal({type,t,weightKg,onAdd,onClose}){
+function AddEntryModal({type,t,weightKg,entries,onAdd,onClose}){
   const [text,setText]=useState(""),[loading,setLoading]=useState(false),[preview,setPreview]=useState(null);
-  async function analyze(){
-    if(!text.trim())return; setLoading(true);
+  const [locked,setLocked]=useState(false);
+
+  const suggestions=text.length>=2&&!locked
+    ? [...new Map(
+        (entries||[])
+          .filter(e=>e.type===type&&(e.label||"").length<=100)
+          .map(e=>[e.label.toLowerCase(),e])
+      ).values()]
+      .filter(e=>(e.label||"").toLowerCase().includes(text.toLowerCase()))
+      .slice(0,6)
+    : [];
+
+  function previewFromEntry(e){
+    if(type==="food") return{label:e.label,calories:e.calories,protein:e.protein,carbs:e.carbs,fat:e.fat,fiber:e.fiber,water:e.water};
+    return{label:e.label,calories_burned:e.calories_burned,duration_min:e.duration_min};
+  }
+
+  function setField(field,val){setPreview(p=>({...p,[field]:parseFloat(val)||0}));}
+
+  function pickSuggestion(e){setText(e.label);analyze(e.label);}
+
+  async function runAI(txt){
+    setLoading(true);
     try{
-      if(type==="food"){const r=await parseFood(text);setPreview({type:"food",label:r.label||text,calories:r.calories_kcal||r.calories,protein:r.protein_g,carbs:r.carbs_g,fat:r.fat_g,fiber:r.fiber_g,water:Math.round((r.water_ml||0)/1000*10)/10});}
-      else{const r=await parseActivity(text,weightKg);setPreview({type:"activity",label:r.label||text,calories_burned:r.calories_burned,duration_min:r.duration_min});}
+      if(type==="food"){const r=await parseFood(txt);setPreview({label:r.label||txt,calories:r.calories_kcal||r.calories,protein:r.protein_g,carbs:r.carbs_g,fat:r.fat_g,fiber:r.fiber_g,water:Math.round((r.water_ml||0)/1000*10)/10});}
+      else{const r=await parseActivity(txt,weightKg);setPreview({label:r.label||txt,calories_burned:r.calories_burned,duration_min:r.duration_min});}
     }catch(e){setPreview({error:true});}
     setLoading(false);
   }
+
+  async function analyze(txt=text){
+    if(!txt.trim())return;
+    setLocked(true);
+    const cached=(entries||[]).find(e=>e.type===type&&(e.label||"").toLowerCase()===txt.trim().toLowerCase());
+    if(cached){setPreview(previewFromEntry(cached));return;}
+    await runAI(txt);
+  }
+
   function confirm(){if(!preview||preview.error)return;onAdd({...preview,ts:Date.now(),date:todayKey()});onClose();}
+
+  const numInp={background:"none",border:"none",textAlign:"center",fontSize:14,fontWeight:700,padding:0,outline:"none",width:"100%"};
+  function NField({ico,field,unit,color}){
+    return(
+      <div style={{textAlign:"center",background:CLR.card,borderRadius:8,padding:"6px 4px"}}>
+        <div style={{fontSize:12}}>{ico}</div>
+        <input type="number" value={preview[field]??0} onChange={e=>setField(field,e.target.value)} style={{...numInp,color}}/>
+        <div style={{fontSize:10,color:CLR.dim}}>{unit}</div>
+      </div>
+    );
+  }
+
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:16}}>
       <div style={{background:CLR.card,borderRadius:16,padding:20,width:"100%",maxWidth:420,border:"1px solid "+CLR.border}}>
         <div style={{fontSize:15,fontWeight:600,marginBottom:14,color:CLR.purple}}>{type==="food"?t.addFood:t.addActivity}</div>
-        <textarea value={text} onChange={e=>setText(e.target.value)} placeholder={type==="food"?t.describeFood:t.describeActivity} rows={3} style={{...inp,resize:"none",marginBottom:10,fontSize:13}}/>
-        {!preview&&<Btn onClick={analyze} disabled={loading||!text.trim()} style={{width:"100%",marginBottom:8}}>{loading?t.analyzing:"✨ Analyze"}</Btn>}
+
+        <textarea value={text} onChange={e=>{if(!locked)setText(e.target.value);}} readOnly={locked}
+          placeholder={type==="food"?t.describeFood:t.describeActivity} rows={3}
+          style={{...inp,resize:"none",marginBottom:4,fontSize:13,opacity:locked?0.55:1}}/>
+
+        {suggestions.length>0&&(
+          <div style={{background:CLR.card2,border:"1px solid "+CLR.border,borderRadius:10,marginBottom:8,overflow:"hidden"}}>
+            {suggestions.map((e,i)=>(
+              <button key={i} onClick={()=>pickSuggestion(e)}
+                style={{display:"block",width:"100%",textAlign:"left",background:"none",border:"none",borderTop:i?("1px solid "+CLR.border):"none",color:CLR.text,padding:"8px 12px",cursor:"pointer",fontSize:13}}>
+                {e.label}
+              </button>))}
+          </div>)}
+
+        {!locked&&<Btn onClick={analyze} disabled={!text.trim()} style={{width:"100%",marginBottom:8}}>✨ Analyze</Btn>}
+        {locked&&!preview&&<div style={{textAlign:"center",color:CLR.muted,fontSize:13,marginBottom:8,padding:"8px 0"}}>{t.analyzing}</div>}
+
         {preview&&!preview.error&&(
           <div style={{background:CLR.card2,borderRadius:10,padding:12,marginBottom:12,fontSize:13}}>
             <div style={{fontWeight:600,marginBottom:8,color:CLR.text}}>{preview.label}</div>
-            {type==="food"?<div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6}}>
-              {[["🔥",preview.calories,"kcal",CLR.purple],["💪",preview.protein,"g prot",CLR.green],["🌾",preview.carbs,"g carbs",CLR.amber],["🥑",preview.fat,"g fat",CLR.red],["🌿",preview.fiber,"g fiber",CLR.teal],["💧",preview.water,"L",CLR.blue]].map(([ico,v,u,c])=><div key={u} style={{textAlign:"center",background:CLR.card,borderRadius:8,padding:"6px 4px"}}><div style={{fontSize:12}}>{ico}</div><div style={{fontSize:14,fontWeight:700,color:c}}>{Math.round((v||0)*10)/10}</div><div style={{fontSize:10,color:CLR.dim}}>{u}</div></div>)}
-            </div>:<div style={{display:"flex",gap:12}}>
-              <div style={{textAlign:"center",flex:1,background:CLR.card,borderRadius:8,padding:"8px"}}><div style={{fontSize:18,fontWeight:700,color:CLR.amber}}>{preview.calories_burned}</div><div style={{fontSize:11,color:CLR.dim}}>kcal burned</div></div>
-              <div style={{textAlign:"center",flex:1,background:CLR.card,borderRadius:8,padding:"8px"}}><div style={{fontSize:18,fontWeight:700,color:CLR.blue}}>{preview.duration_min}</div><div style={{fontSize:11,color:CLR.dim}}>minutes</div></div>
-            </div>}
+            {type==="food"
+              ?<div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6}}>
+                <NField ico="🔥" field="calories" unit="kcal" color={CLR.purple}/>
+                <NField ico="💪" field="protein" unit="g prot" color={CLR.green}/>
+                <NField ico="🌾" field="carbs" unit="g carbs" color={CLR.amber}/>
+                <NField ico="🥑" field="fat" unit="g fat" color={CLR.red}/>
+                <NField ico="🌿" field="fiber" unit="g fiber" color={CLR.teal}/>
+                <NField ico="💧" field="water" unit="L" color={CLR.blue}/>
+              </div>
+              :<div style={{display:"flex",gap:12}}>
+                <NField ico="🔥" field="calories_burned" unit="kcal burned" color={CLR.amber}/>
+                <NField ico="⏱" field="duration_min" unit="minutes" color={CLR.blue}/>
+              </div>}
           </div>)}
-        {preview?.error&&<div style={{color:CLR.red,fontSize:13,marginBottom:8}}>Failed to analyze. Try again.</div>}
+
+        {preview?.error&&<div style={{color:CLR.red,fontSize:13,marginBottom:8}}>Failed to analyze.</div>}
+
         <div style={{display:"flex",gap:8}}>
-          <Btn variant="ghost" onClick={()=>{setPreview(null);setText("");}}>↩ Redo</Btn>
+          {locked&&<Btn variant="ghost" onClick={()=>runAI(text)} disabled={loading}>🔄 {loading?t.analyzing:"Recalculate"}</Btn>}
           {preview&&!preview.error&&<Btn onClick={confirm} style={{flex:1}}>{t.add}</Btn>}
           <Btn variant="ghost" onClick={onClose}>{t.cancel}</Btn>
         </div>
@@ -490,6 +588,7 @@ function AddEntryModal({type,t,weightKg,onAdd,onClose}){
 // ─── DASHBOARD TAB ────────────────────────────────────────────────────────────
 function DashboardTab({t,appData,entries,setEntries,onEOD}){
   const [modal,setModal]=useState(null);
+  const [eodConfirm,setEodConfirm]=useState(false);
   const goals=appData.goals.nutrition;
   const today=todayKey();
   const todayEntries=entries.filter(e=>e.date===today);
@@ -501,6 +600,7 @@ function DashboardTab({t,appData,entries,setEntries,onEOD}){
     const eodEntry={type:"eod",date:today,ts:Date.now(),label:t.endOfDayMsg};
     setEntries(prev=>[...prev,eodEntry]);
     onEOD(eodEntry,entries);
+    setEodConfirm(false);
   }
   const rings=[
     {label:t.calories,value:tots.cal,max:goals.targetCal,color:CLR.purple,unit:""},
@@ -513,7 +613,8 @@ function DashboardTab({t,appData,entries,setEntries,onEOD}){
   const typeIcon={food:"🍽",activity:"🏃",eod:"🌙",body:"⚖️"};
   return(
     <div style={{height:"100%",display:"flex",flexDirection:"column",overflow:"hidden"}}>
-      {modal&&<AddEntryModal type={modal} t={t} weightKg={appData.profile.weight} onAdd={e=>addEntry({...e,type:modal})} onClose={()=>setModal(null)}/>}
+      {modal&&<AddEntryModal type={modal} t={t} weightKg={appData.profile.weight} entries={entries} onAdd={e=>addEntry({...e,type:modal})} onClose={()=>setModal(null)}/>}
+      {eodConfirm&&<ConfirmModal title={t.eodConfirmTitle} message={t.eodConfirmMsg} confirmText={t.eodConfirmBtn} onConfirm={markEOD} onCancel={()=>setEodConfirm(false)}/>}
 
       {/* Fixed top: stats + rings + actions */}
       <div style={{flexShrink:0,padding:"12px 16px 0"}}>
@@ -527,7 +628,7 @@ function DashboardTab({t,appData,entries,setEntries,onEOD}){
         {!eod&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:10}}>
           <Btn onClick={()=>setModal("food")} style={{fontSize:12,padding:"10px 6px"}}>🍽 {t.addFood}</Btn>
           <Btn onClick={()=>setModal("activity")} style={{fontSize:12,padding:"10px 6px",background:CLR.card2,color:CLR.green,border:"1px solid "+CLR.border}}>🏃 {t.addActivity}</Btn>
-          <Btn onClick={markEOD} variant="ghost" style={{fontSize:12,padding:"10px 6px",color:CLR.amber,border:"1px solid #4a3800"}}>🌙 {t.endOfDay}</Btn>
+          <Btn onClick={()=>setEodConfirm(true)} variant="ghost" style={{fontSize:12,padding:"10px 6px",color:CLR.amber,border:"1px solid #4a3800"}}>🌙 {t.endOfDay}</Btn>
         </div>}
         {eod&&<div style={{background:"#1a1a10",border:"1px solid #4a3800",borderRadius:12,padding:"10px 14px",marginBottom:10,fontSize:13,color:CLR.amber,textAlign:"center"}}>🌙 {t.endOfDayMsg}</div>}
       </div>
@@ -755,15 +856,49 @@ function LogTab({t,entries,bodyPoints}){
   );
 }
 
+// ─── MENU MODAL ───────────────────────────────────────────────────────────────
+function MenuModal({t,lang,toggleLang,onDeleteData,onClose}){
+  const [confirmDelete,setConfirmDelete]=useState(false);
+  if(confirmDelete) return(
+    <ConfirmModal
+      title={t.deleteDataTitle} message={t.deleteDataMsg}
+      confirmText={t.deleteDataConfirm} danger
+      onConfirm={onDeleteData} onCancel={()=>setConfirmDelete(false)}/>
+  );
+  const row=(label,right,onClick,red=false)=>(
+    <button onClick={onClick} style={{display:"flex",justifyContent:"space-between",alignItems:"center",width:"100%",background:"none",border:"none",borderTop:"1px solid "+CLR.border,padding:"14px 0",cursor:"pointer",color:red?CLR.red:CLR.text,fontSize:14}}>
+      <span>{label}</span><span style={{color:red?CLR.red:CLR.muted,fontSize:13}}>{right}</span>
+    </button>);
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",display:"flex",alignItems:"flex-start",justifyContent:"center",zIndex:300,padding:16,paddingTop:60}}>
+      <div style={{background:CLR.card,borderRadius:16,padding:"0 20px",width:"100%",maxWidth:420,border:"1px solid "+CLR.border}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"16px 0",borderBottom:"1px solid "+CLR.border}}>
+          <div style={{fontSize:15,fontWeight:700,color:CLR.text}}>⚙️ {t.settings}</div>
+          <button onClick={onClose} style={{background:"none",border:"none",color:CLR.muted,fontSize:20,cursor:"pointer",lineHeight:1}}>×</button>
+        </div>
+        {row(t.language, lang==="en"?"🇮🇱 עברית":"🇺🇸 English", toggleLang)}
+        {row("⚠️ "+t.deleteData, "→", ()=>setConfirmDelete(true), true)}
+        <div style={{height:8}}/>
+      </div>
+    </div>
+  );
+}
+
 // ─── MAIN APP ─────────────────────────────────────────────────────────────────
-function MainApp({data,t,lang,toggleLang}){
+function MainApp({data,t,lang,toggleLang,onReset}){
   const [tab,setTab]=useState(0);
   const [entries,setEntries]=useState([]);
   const [bodyPoints,setBodyPoints]=useState([]);
   const [chatHistory,setChatHistory]=useState([]);
   const [unreadCount,setUnreadCount]=useState(0);
   const [storeReady,setStoreReady]=useState(false);
+  const [menuOpen,setMenuOpen]=useState(false);
   const lastEODCheck=useRef(null);
+
+  async function handleDeleteData(){
+    await clearUserData();
+    onReset();
+  }
 
   useEffect(()=>{
     (async()=>{
@@ -832,6 +967,7 @@ function MainApp({data,t,lang,toggleLang}){
 
   return(
     <div style={{height:"100dvh",background:CLR.bg,color:CLR.text,fontFamily:"system-ui,sans-serif",direction:t.dir,display:"flex",flexDirection:"column",alignItems:"center",overflow:"hidden"}}>
+      {menuOpen&&<MenuModal t={t} lang={lang} toggleLang={()=>{toggleLang();setMenuOpen(false);}} onDeleteData={handleDeleteData} onClose={()=>setMenuOpen(false)}/>}
 
       {/* Header */}
       <div style={{width:"100%",maxWidth:680,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 16px 0"}}>
@@ -843,7 +979,7 @@ function MainApp({data,t,lang,toggleLang}){
             <span style={{opacity:0.5}}>{"v"+ __APP_VERSION__}</span>
           </div>
         </div>
-        <button onClick={toggleLang} style={{background:CLR.card,border:"1px solid "+CLR.border,color:CLR.muted,borderRadius:8,padding:"6px 14px",cursor:"pointer",fontSize:13}}>{lang==="en"?"עב":"EN"}</button>
+        <button onClick={()=>setMenuOpen(true)} style={{background:CLR.card,border:"1px solid "+CLR.border,color:CLR.muted,borderRadius:8,padding:"6px 14px",cursor:"pointer",fontSize:16}}>☰</button>
       </div>
 
       {/* Tab bar */}
@@ -885,7 +1021,8 @@ export default function FitnessApp(){
     setAppData(data);
     try{await storageSet("appData",JSON.stringify(data));}catch(e){}
   }
+  function handleReset(){setAppData(null);}
   if(!ready)return<div style={{minHeight:"100dvh",background:CLR.bg,display:"flex",alignItems:"center",justifyContent:"center",color:CLR.muted,fontSize:14}}>Loading…</div>;
   if(!appData)return<SetupFlow onComplete={handleComplete} t={t} lang={lang} toggleLang={toggleLang}/>;
-  return<MainApp data={appData} t={t} lang={lang} toggleLang={toggleLang}/>;
+  return<MainApp data={appData} t={t} lang={lang} toggleLang={toggleLang} onReset={handleReset}/>;
 }
