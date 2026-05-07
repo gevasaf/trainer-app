@@ -1,4 +1,4 @@
-# AI Trainer
+# AI Trainer README
 
 A personal fitness and diet coaching app powered by Claude AI, with cross-device sync via Supabase and hosted on Vercel.
 

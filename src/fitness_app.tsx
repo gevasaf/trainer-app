@@ -884,8 +884,8 @@ function LogTab({t,entries,bodyPoints}){
   );
 }
 
-// ─── MENU MODAL ───────────────────────────────────────────────────────────────
-function MenuModal({t,lang,toggleLang,onDeleteData,onClose}){
+// ─── MENU DROPDOWN ────────────────────────────────────────────────────────────
+function MenuDropdown({t,lang,toggleLang,onDeleteData,onClose}){
   const [confirmDelete,setConfirmDelete]=useState(false);
   if(confirmDelete) return(
     <ConfirmModal
@@ -894,21 +894,18 @@ function MenuModal({t,lang,toggleLang,onDeleteData,onClose}){
       onConfirm={onDeleteData} onCancel={()=>setConfirmDelete(false)}/>
   );
   const row=(label,right,onClick,red=false)=>(
-    <button onClick={onClick} style={{display:"flex",justifyContent:"space-between",alignItems:"center",width:"100%",background:"none",border:"none",borderTop:"1px solid "+CLR.border,padding:"14px 0",cursor:"pointer",color:red?CLR.red:CLR.text,fontSize:14}}>
-      <span>{label}</span><span style={{color:red?CLR.red:CLR.muted,fontSize:13}}>{right}</span>
+    <button onClick={onClick} style={{display:"flex",justifyContent:"space-between",alignItems:"center",width:"100%",background:"none",border:"none",borderTop:"1px solid "+CLR.border,padding:"12px 16px",cursor:"pointer",color:red?CLR.red:CLR.text,fontSize:14,gap:16}}>
+      <span>{label}</span><span style={{color:red?CLR.red:CLR.muted,fontSize:13,whiteSpace:"nowrap"}}>{right}</span>
     </button>);
+  const side=t.dir==="rtl"?{right:0}:{left:0};
   return(
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.75)",display:"flex",alignItems:"flex-start",justifyContent:"center",zIndex:300,padding:16,paddingTop:60}}>
-      <div style={{background:CLR.card,borderRadius:16,padding:"0 20px",width:"100%",maxWidth:420,border:"1px solid "+CLR.border}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"16px 0",borderBottom:"1px solid "+CLR.border}}>
-          <div style={{fontSize:15,fontWeight:700,color:CLR.text}}>⚙️ {t.settings}</div>
-          <button onClick={onClose} style={{background:"none",border:"none",color:CLR.muted,fontSize:20,cursor:"pointer",lineHeight:1}}>×</button>
-        </div>
+    <>
+      <div onClick={onClose} style={{position:"fixed",inset:0,zIndex:299}}/>
+      <div style={{position:"absolute",top:"calc(100% + 6px)",...side,zIndex:300,background:CLR.card,borderRadius:12,border:"1px solid "+CLR.border,minWidth:220,boxShadow:"0 8px 24px rgba(0,0,0,0.4)",overflow:"hidden"}}>
         {row(t.language, lang==="en"?"🇮🇱 עברית":"🇺🇸 English", toggleLang)}
         {row("⚠️ "+t.deleteData, "→", ()=>setConfirmDelete(true), true)}
-        <div style={{height:8}}/>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -1002,19 +999,22 @@ function MainApp({data,t,lang,toggleLang,onReset,greetOnMount}){
 
   return(
     <div style={{height:"100dvh",background:CLR.bg,color:CLR.text,fontFamily:"system-ui,sans-serif",direction:t.dir,display:"flex",flexDirection:"column",alignItems:"center",overflow:"hidden"}}>
-      {menuOpen&&<MenuModal t={t} lang={lang} toggleLang={()=>{toggleLang();setMenuOpen(false);}} onDeleteData={handleDeleteData} onClose={()=>setMenuOpen(false)}/>}
-
       {/* Header */}
       <div style={{width:"100%",maxWidth:680,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 16px 0"}}>
-        <div>
-          <div style={{fontSize:18,fontWeight:700}}>{"👋 "+data.profile.name}</div>
-          <div style={{fontSize:11,color:CLR.muted,display:"flex",gap:6,alignItems:"center"}}>
-            <span>{new Date().toLocaleDateString(lang==="he"?"he-IL":"en-US",{weekday:"long",month:"long",day:"numeric"})}</span>
-            <span style={{opacity:0.4}}>·</span>
-            <span style={{opacity:0.5}}>{"v"+ __APP_VERSION__}</span>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <div style={{position:"relative"}}>
+            <button onClick={()=>setMenuOpen(o=>!o)} style={{background:menuOpen?CLR.purple:"none",border:"1px solid "+(menuOpen?CLR.purple:CLR.border),color:menuOpen?"#fff":CLR.muted,borderRadius:8,padding:"4px 10px",cursor:"pointer",fontSize:16,lineHeight:1.4,flexShrink:0}}>☰</button>
+            {menuOpen&&<MenuDropdown t={t} lang={lang} toggleLang={()=>{toggleLang();setMenuOpen(false);}} onDeleteData={handleDeleteData} onClose={()=>setMenuOpen(false)}/>}
+          </div>
+          <div>
+            <div style={{fontSize:18,fontWeight:700}}>{"👋 "+data.profile.name}</div>
+            <div style={{fontSize:11,color:CLR.muted,display:"flex",gap:6,alignItems:"center"}}>
+              <span>{new Date().toLocaleDateString(lang==="he"?"he-IL":"en-US",{weekday:"long",month:"long",day:"numeric"})}</span>
+              <span style={{opacity:0.4}}>·</span>
+              <span style={{opacity:0.5}}>{"v"+ __APP_VERSION__}</span>
+            </div>
           </div>
         </div>
-        <button onClick={()=>setMenuOpen(true)} style={{background:CLR.card,border:"1px solid "+CLR.border,color:CLR.muted,borderRadius:8,padding:"6px 14px",cursor:"pointer",fontSize:16}}>☰</button>
       </div>
 
       {/* Tab bar */}
