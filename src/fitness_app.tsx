@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { CLR } from "./lib/utils";
 import { T } from "./i18n";
 import { storageGet, storageSet } from "./lib/storage";
+import { supabase } from "./lib/supabase";
 import { SetupFlow } from "./components/SetupFlow";
 import { MainApp } from "./components/MainApp";
 
@@ -25,7 +26,8 @@ export default function FitnessApp(){
     try{await storageSet("appData",JSON.stringify(data));}catch(e){}
   }
   function handleReset(){setAppData(null);}
+  async function handleLogout(){await supabase.auth.signOut();}
   if(!ready)return<div style={{minHeight:"100dvh",background:CLR.bg,display:"flex",alignItems:"center",justifyContent:"center",color:CLR.muted,fontSize:14}}>Loading…</div>;
   if(!appData)return<SetupFlow onComplete={handleComplete} t={t} lang={lang} toggleLang={toggleLang}/>;
-  return<MainApp data={appData} t={t} lang={lang} toggleLang={toggleLang} onReset={handleReset} greetOnMount={greetOnMount}/>;
+  return<MainApp data={appData} t={t} lang={lang} toggleLang={toggleLang} onReset={handleReset} onLogout={handleLogout} greetOnMount={greetOnMount}/>;
 }

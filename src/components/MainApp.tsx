@@ -11,7 +11,7 @@ import { LogTab } from "./LogTab";
 
 declare const __APP_VERSION__: string;
 
-function MenuDropdown({t,lang,toggleLang,onDeleteData,onClose}){
+function MenuDropdown({t,lang,toggleLang,onDeleteData,onLogout,onClose}){
   const [confirmDelete,setConfirmDelete]=useState(false);
   if(confirmDelete) return(
     <ConfirmModal
@@ -29,13 +29,14 @@ function MenuDropdown({t,lang,toggleLang,onDeleteData,onClose}){
       <div onClick={onClose} style={{position:"fixed",inset:0,zIndex:299}}/>
       <div style={{position:"absolute",top:"calc(100% + 6px)",...side,zIndex:300,background:CLR.card,borderRadius:12,border:"1px solid "+CLR.border,minWidth:220,boxShadow:"0 8px 24px rgba(0,0,0,0.4)",overflow:"hidden"}}>
         {row(t.language, lang==="en"?"🇮🇱 עברית":"🇺🇸 English", toggleLang)}
+        {row("🚪 "+t.logout, "→", onLogout)}
         {row("⚠️ "+t.deleteData, "→", ()=>setConfirmDelete(true), true)}
       </div>
     </>
   );
 }
 
-export function MainApp({data,t,lang,toggleLang,onReset,greetOnMount}){
+export function MainApp({data,t,lang,toggleLang,onReset,onLogout,greetOnMount}){
   const [tab,setTab]=useState(0);
   const [entries,setEntries]=useState([]);
   const [bodyPoints,setBodyPoints]=useState([]);
@@ -137,7 +138,7 @@ export function MainApp({data,t,lang,toggleLang,onReset,greetOnMount}){
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <div style={{position:"relative"}}>
             <button onClick={()=>setMenuOpen(o=>!o)} style={{background:menuOpen?CLR.purple:"none",border:"1px solid "+(menuOpen?CLR.purple:CLR.border),color:menuOpen?"#fff":CLR.muted,borderRadius:8,padding:"4px 10px",cursor:"pointer",fontSize:16,lineHeight:1.4,flexShrink:0}}>☰</button>
-            {menuOpen&&<MenuDropdown t={t} lang={lang} toggleLang={()=>{toggleLang();setMenuOpen(false);}} onDeleteData={handleDeleteData} onClose={()=>setMenuOpen(false)}/>}
+            {menuOpen&&<MenuDropdown t={t} lang={lang} toggleLang={()=>{toggleLang();setMenuOpen(false);}} onDeleteData={handleDeleteData} onLogout={onLogout} onClose={()=>setMenuOpen(false)}/>}
           </div>
           <div>
             <div style={{fontSize:18,fontWeight:700}}>{"👋 "+data.profile.name}</div>
