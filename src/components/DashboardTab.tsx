@@ -174,7 +174,7 @@ function AddEntryModal({type,t,weightKg,entries,onAdd,onClose}){
   );
 }
 
-export function DashboardTab({t,appData,entries,setEntries,onEOD}){
+export function DashboardTab({t,appData,entries,setEntries,onEOD,deleteEntry}){
   const [modal,setModal]=useState(null);
   const [eodConfirm,setEodConfirm]=useState(false);
   const goals=appData.goals.nutrition;
@@ -253,14 +253,17 @@ export function DashboardTab({t,appData,entries,setEntries,onEOD}){
           {todayEntries.length===0&&<div style={{color:CLR.dim,fontSize:13,textAlign:"center",padding:"16px 0"}}>{t.noLogs}</div>}
           {[...todayEntries].reverse().map((e,i)=>(
             <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",padding:"9px 0",borderBottom:"1px solid "+CLR.border}}>
-              <div style={{display:"flex",gap:8,alignItems:"flex-start"}}>
+              <div style={{display:"flex",gap:8,alignItems:"flex-start",flex:1,minWidth:0}}>
                 <span style={{fontSize:16}}>{typeIcon[e.type]||"📝"}</span>
-                <div><div style={{fontSize:13,color:CLR.text}}>{e.label}</div>
+                <div style={{minWidth:0}}><div style={{fontSize:13,color:CLR.text}}>{e.label}</div>
                   {e.type==="food"&&<div style={{fontSize:11,color:CLR.muted}}>{Math.round(e.calories||0)} kcal · {Math.round(e.protein||0)}g prot · {Math.round(e.carbs||0)}g carbs</div>}
                   {e.type==="activity"&&<div style={{fontSize:11,color:CLR.muted}}>{e.calories_burned} kcal burned · {e.duration_min} min</div>}
                 </div>
               </div>
-              <div style={{fontSize:11,color:CLR.dim,whiteSpace:"nowrap"}}>{new Date(e.ts).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</div>
+              <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
+                <div style={{fontSize:11,color:CLR.dim,whiteSpace:"nowrap"}}>{new Date(e.ts).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</div>
+                <button onClick={()=>deleteEntry(e.ts)} style={{background:"none",border:"none",color:CLR.dim,cursor:"pointer",fontSize:14,padding:"2px 4px",lineHeight:1,opacity:0.6}} title="Delete entry">🗑</button>
+              </div>
             </div>))}
         </Card>
       </div>

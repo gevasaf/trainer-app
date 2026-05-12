@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { CLR } from "../lib/utils";
 import { Card, inp } from "./ui";
 
-export function LogTab({t,entries,bodyPoints}){
+export function LogTab({t,entries,bodyPoints,deleteEntry,deleteBodyPoint}){
   const [filterType,setFilterType]=useState("all"),[fromDate,setFromDate]=useState(""),[toDate,setToDate]=useState("");
   const typeIcon={food:"🍽",activity:"🏃",eod:"🌙",body:"⚖️"};
   const typeColor={food:CLR.purple,activity:CLR.green,eod:CLR.amber,body:CLR.teal};
@@ -41,7 +41,10 @@ export function LogTab({t,entries,bodyPoints}){
               {e.type==="food"&&<div style={{fontSize:11,color:CLR.muted}}>{Math.round(e.calories||0)} kcal · {Math.round(e.protein||0)}g P · {Math.round(e.carbs||0)}g C · {Math.round(e.fat||0)}g F</div>}
               {e.type==="activity"&&<div style={{fontSize:11,color:CLR.muted}}>{e.calories_burned} kcal burned · {e.duration_min} min</div>}
             </div>
-            <div style={{fontSize:11,color:CLR.dim,flexShrink:0,textAlign:"right"}}><div>{e.date}</div><div style={{color:typeColor[e.type]||CLR.dim}}>{e.type}</div></div>
+            <div style={{display:"flex",alignItems:"flex-start",gap:6,flexShrink:0}}>
+              <div style={{fontSize:11,color:CLR.dim,textAlign:"right"}}><div>{e.date}</div><div style={{color:typeColor[e.type]||CLR.dim}}>{e.type}</div></div>
+              <button onClick={()=>e.type==="body"?deleteBodyPoint(e.ts):deleteEntry(e.ts)} style={{background:"none",border:"none",color:CLR.dim,cursor:"pointer",fontSize:14,padding:"2px 4px",lineHeight:1,opacity:0.6,marginTop:1}} title="Delete entry">🗑</button>
+            </div>
           </div>))}
       </div>
     </div>

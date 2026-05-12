@@ -164,10 +164,10 @@ export function MainApp({data,t,lang,toggleLang,onReset,onLogout,greetOnMount}){
 
       {/* Content area — each tab manages its own scroll */}
       <div style={{width:"100%",maxWidth:680,flex:1,overflow:"hidden",display:"flex",flexDirection:"column"}}>
-        {tab===0&&<DashboardTab t={t} appData={data} entries={entries} setEntries={setEntries} onEOD={triggerEODEvent}/>}
-        {tab===1&&<TimelineTab t={t} appData={data} bodyPoints={bodyPoints} setBodyPoints={setBodyPoints} onMeasurement={handleMeasurement} lang={lang}/>}
+        {tab===0&&<DashboardTab t={t} appData={data} entries={entries} setEntries={setEntries} onEOD={triggerEODEvent} deleteEntry={ts=>setEntries(prev=>prev.filter(e=>e.ts!==ts))}/>}
+        {tab===1&&<TimelineTab t={t} appData={data} bodyPoints={bodyPoints} setBodyPoints={setBodyPoints} onMeasurement={handleMeasurement} lang={lang} deleteBodyPoint={ts=>setBodyPoints(prev=>prev.filter(p=>p.ts!==ts))}/>}
         {tab===2&&<AssistantTab t={t} appData={data} entries={entries} bodyPoints={bodyPoints} chatHistory={chatHistory} setChatHistory={setChatHistory} unreadCount={unreadCount} setUnreadCount={setUnreadCount} lang={lang} status={assistantStatus} setStatus={setAssistantStatus}/>}
-        {tab===3&&<LogTab t={t} entries={entries} bodyPoints={bodyPoints}/>}
+        {tab===3&&<LogTab t={t} entries={entries} bodyPoints={bodyPoints} deleteEntry={ts=>setEntries(prev=>prev.filter(e=>e.ts!==ts))} deleteBodyPoint={ts=>setBodyPoints(prev=>prev.filter(p=>p.ts!==ts))}/>}
       </div>
     </div>
   );
