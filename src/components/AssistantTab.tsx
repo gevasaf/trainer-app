@@ -1,59 +1,35 @@
 // @ts-nocheck
 import React, { useState, useRef, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { CLR, round1 } from "../lib/utils";
 import { Btn, inp } from "./ui";
 import { callAssistant } from "../lib/api";
 
-function renderMessage(content) {
-  const lines = content.split('\n');
-  const segments = [];
-  let textLines = [];
-  let i = 0;
-
-  while (i < lines.length) {
-    const cur = lines[i].trim();
-    const next = lines[i + 1]?.trim() ?? '';
-    if (/^\|.+\|$/.test(cur) && /^\|[-|: ]+\|$/.test(next)) {
-      if (textLines.length) { segments.push({type:'text', content:textLines.join('\n')}); textLines = []; }
-      const tLines = [];
-      while (i < lines.length && /^\|.+\|$/.test(lines[i].trim())) { tLines.push(lines[i]); i++; }
-      segments.push({type:'table', lines:tLines});
-    } else {
-      textLines.push(lines[i]);
-      i++;
-    }
-  }
-  if (textLines.length) segments.push({type:'text', content:textLines.join('\n')});
-
-  return segments.map((seg, idx) => {
-    if (seg.type === 'text') {
-      const t = seg.content.replace(/^\n+|\n+$/g, '');
-      return t ? <span key={idx} style={{whiteSpace:'pre-wrap',wordBreak:'break-word',display:'block'}}>{t}</span> : null;
-    }
-    const rows = seg.lines.map(l => l.split('|').slice(1,-1).map(c=>c.trim()));
-    const [headers, , ...data] = rows;
-    return (
-      <div key={idx} style={{overflowX:'auto',margin:'6px 0'}}>
-        <table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}>
-          <thead>
-            <tr>{headers.map((h,j)=>(
-              <th key={j} style={{background:CLR.card,padding:'6px 10px',textAlign:'left',fontWeight:600,color:CLR.muted,borderBottom:'1px solid '+CLR.border,whiteSpace:'nowrap'}}>{h}</th>
-            ))}</tr>
-          </thead>
-          <tbody>
-            {data.map((row,j)=>(
-              <tr key={j} style={{background:j%2===1?CLR.card:'transparent'}}>
-                {row.map((cell,k)=>(
-                  <td key={k} style={{padding:'5px 10px',borderBottom:'1px solid '+CLR.border+'44',color:CLR.text,whiteSpace:'nowrap'}}>{cell}</td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    );
-  });
-}
+const mdComponents = {
+  h1: ({children}) => <div style={{fontSize:18,fontWeight:700,color:CLR.purple,margin:'10px 0 4px',lineHeight:1.3}}>{children}</div>,
+  h2: ({children}) => <div style={{fontSize:16,fontWeight:700,color:CLR.purple,margin:'8px 0 4px',lineHeight:1.3}}>{children}</div>,
+  h3: ({children}) => <div style={{fontSize:14,fontWeight:600,color:CLR.purple,margin:'6px 0 3px',lineHeight:1.3}}>{children}</div>,
+  p: ({children}) => <div style={{margin:'4px 0',lineHeight:1.6}}>{children}</div>,
+  strong: ({children}) => <strong style={{color:CLR.text,fontWeight:700}}>{children}</strong>,
+  em: ({children}) => <em style={{color:CLR.muted}}>{children}</em>,
+  ul: ({children}) => <ul style={{margin:'4px 0',paddingLeft:20,lineHeight:1.6}}>{children}</ul>,
+  ol: ({children}) => <ol style={{margin:'4px 0',paddingLeft:20,lineHeight:1.6}}>{children}</ol>,
+  li: ({children}) => <li style={{margin:'2px 0'}}>{children}</li>,
+  blockquote: ({children}) => <blockquote style={{borderLeft:'3px solid '+CLR.purple,margin:'6px 0',paddingLeft:10,color:CLR.muted}}>{children}</blockquote>,
+  hr: () => <hr style={{border:'none',borderTop:'1px solid '+CLR.border,margin:'8px 0'}}/>,
+  a: ({href,children}) => <a href={href} target="_blank" rel="noopener noreferrer" style={{color:CLR.purple,textDecoration:'underline'}}>{children}</a>,
+  code: ({inline, children}) => inline
+    ? <code style={{background:CLR.card,color:CLR.green,padding:'1px 5px',borderRadius:4,fontSize:12,fontFamily:'monospace'}}>{children}</code>
+    : null,
+  pre: ({children}) => <pre style={{background:CLR.card,border:'1px solid '+CLR.border,borderRadius:8,padding:'10px 12px',overflowX:'auto',fontSize:12,fontFamily:'monospace',margin:'6px 0',color:CLR.text,lineHeight:1.5}}>{children}</pre>,
+  table: ({children}) => <div style={{overflowX:'auto',margin:'6px 0'}}><table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}>{children}</table></div>,
+  thead: ({children}) => <thead>{children}</thead>,
+  tbody: ({children}) => <tbody>{children}</tbody>,
+  tr: ({children}) => <tr>{children}</tr>,
+  th: ({children}) => <th style={{background:CLR.card,padding:'6px 10px',textAlign:'left',fontWeight:600,color:CLR.muted,borderBottom:'1px solid '+CLR.border,whiteSpace:'nowrap'}}>{children}</th>,
+  td: ({children}) => <td style={{padding:'5px 10px',borderBottom:'1px solid '+CLR.border+'44',color:CLR.text,whiteSpace:'nowrap'}}>{children}</td>,
+};
 
 export function AssistantTab({t,appData,entries,bodyPoints,chatHistory,setChatHistory,setUnreadCount,lang,status,setStatus}){
   const [input,setInput]=useState("");
@@ -142,7 +118,7 @@ export function AssistantTab({t,appData,entries,bodyPoints,chatHistory,setChatHi
               <div style={{maxWidth:"82%",background:isUser?CLR.purpleBg:CLR.card2,borderRadius:isUser?"16px 16px 4px 16px":"16px 16px 16px 4px",padding:"10px 14px",fontSize:13,lineHeight:1.6,color:isUser?"#e9d5ff":CLR.text,border:isUser?"none":"1px solid "+CLR.border,wordBreak:"break-word"}}>
                 {isUser
                   ? <span style={{whiteSpace:'pre-wrap'}}>{msg.content}</span>
-                  : renderMessage(msg.content)}
+                  : <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>{msg.content}</ReactMarkdown>}
               </div>
             </div>
           );
