@@ -31,7 +31,7 @@ function BodyStatModal({t,profile,onSave,onClose}){
   );
 }
 
-export function TimelineTab({t,appData,bodyPoints,setBodyPoints,onMeasurement,lang}){
+export function TimelineTab({t,appData,bodyPoints,setBodyPoints,onMeasurement,lang,deleteBodyPoint}){
   const [showModal,setShowModal]=useState(false);
   const goals=appData.goals;
   function handleSave(pt){
@@ -64,12 +64,13 @@ export function TimelineTab({t,appData,bodyPoints,setBodyPoints,onMeasurement,la
       <div style={{flex:1,overflowY:"auto",padding:"0 16px 16px"}}>
         {bodyPoints.length>0&&<Card>
           {[...bodyPoints].reverse().map((p,i)=>(
-            <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid "+CLR.border,fontSize:13}}>
+            <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid "+CLR.border,fontSize:13}}>
               <span style={{color:CLR.muted}}>{p.date}</span>
-              <div style={{display:"flex",gap:12}}>
+              <div style={{display:"flex",gap:12,alignItems:"center"}}>
                 {p.weight&&<span style={{color:CLR.purple}}>{p.weight} kg</span>}
                 {p.waist&&<span style={{color:CLR.teal}}>{p.waist} cm</span>}
                 {p.fat&&<span style={{color:CLR.amber}}>{p.fat}%</span>}
+                <button onClick={()=>deleteBodyPoint(p.ts)} style={{background:"none",border:"none",color:CLR.dim,cursor:"pointer",fontSize:14,padding:"2px 4px",lineHeight:1,opacity:0.6}} title="Delete measurement">🗑</button>
               </div>
             </div>))}
         </Card>}
