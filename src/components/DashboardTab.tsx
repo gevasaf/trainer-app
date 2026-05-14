@@ -177,6 +177,7 @@ function AddEntryModal({type,t,weightKg,entries,onAdd,onClose}){
 export function DashboardTab({t,appData,entries,setEntries,onEOD,deleteEntry}){
   const [modal,setModal]=useState(null);
   const [eodConfirm,setEodConfirm]=useState(false);
+  const [pendingDelete,setPendingDelete]=useState(null);
   const goals=appData.goals.nutrition;
   const today=todayKey();
   const todayEntries=entries.filter(e=>e.date===today);
@@ -262,7 +263,10 @@ export function DashboardTab({t,appData,entries,setEntries,onEOD,deleteEntry}){
               </div>
               <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
                 <div style={{fontSize:11,color:CLR.dim,whiteSpace:"nowrap"}}>{new Date(e.ts).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</div>
-                <button onClick={()=>deleteEntry(e.ts)} style={{background:"none",border:"none",color:CLR.dim,cursor:"pointer",fontSize:14,padding:"2px 4px",lineHeight:1,opacity:0.6}} title="Delete entry">🗑</button>
+                {pendingDelete===e.ts
+                  ?<><button onClick={()=>setPendingDelete(null)} style={{background:"none",border:"1px solid "+CLR.border,color:CLR.muted,cursor:"pointer",fontSize:11,padding:"2px 7px",borderRadius:6,lineHeight:1.5}}>Cancel</button>
+                    <button onClick={()=>{deleteEntry(e.ts);setPendingDelete(null);}} style={{background:CLR.red,border:"none",color:"#fff",cursor:"pointer",fontSize:11,padding:"2px 7px",borderRadius:6,lineHeight:1.5}}>Delete</button></>
+                  :<button onClick={()=>setPendingDelete(e.ts)} style={{background:"none",border:"none",color:CLR.dim,cursor:"pointer",fontSize:14,padding:"2px 4px",lineHeight:1,opacity:0.6}} title="Delete entry">🗑</button>}
               </div>
             </div>))}
         </Card>
