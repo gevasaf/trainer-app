@@ -35,9 +35,12 @@ export function AssistantTab({t,appData,entries,bodyPoints,chatHistory,setChatHi
   const [input,setInput]=useState("");
   const bottomRef=useRef(null);
   const textareaRef=useRef(null);
+  const isFirstRender=useRef(true);
 
   useEffect(()=>{
-    bottomRef.current?.scrollIntoView({behavior:"smooth"});
+    const behavior=isFirstRender.current?"instant":"smooth";
+    isFirstRender.current=false;
+    bottomRef.current?.scrollIntoView({behavior});
     setUnreadCount(0);
   },[chatHistory]);
 
