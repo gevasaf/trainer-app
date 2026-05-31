@@ -137,10 +137,16 @@ function AddEntryModal({type,t,weightKg,entries,onAdd,onClose}){
           </div>)}
 
         {type==="food"&&!locked&&(
-          <label style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6,background:CLR.card2,border:"1px solid "+CLR.border,borderRadius:10,padding:"9px",cursor:"pointer",fontSize:13,marginBottom:8,color:CLR.text,userSelect:"none"}}>
-            📷 Camera
-            <input type="file" accept="image/*" capture="environment" style={{display:"none"}} onChange={handleImageSelect}/>
-          </label>)}
+          <div style={{display:"flex",gap:8,marginBottom:8}}>
+            <label style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:6,background:CLR.card2,border:"1px solid "+CLR.border,borderRadius:10,padding:"9px",cursor:"pointer",fontSize:13,color:CLR.text,userSelect:"none"}}>
+              📷 Camera
+              <input type="file" accept="image/*" capture="environment" style={{display:"none"}} onChange={handleImageSelect}/>
+            </label>
+            <label style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:6,background:CLR.card2,border:"1px solid "+CLR.border,borderRadius:10,padding:"9px",cursor:"pointer",fontSize:13,color:CLR.text,userSelect:"none"}}>
+              🖼 Gallery
+              <input type="file" accept="image/*" style={{display:"none"}} onChange={handleImageSelect}/>
+            </label>
+          </div>)}
 
         {imageDataUrl&&(
           <div style={{position:"relative",marginBottom:8,borderRadius:10,overflow:"hidden",border:"1px solid "+CLR.border}}>
