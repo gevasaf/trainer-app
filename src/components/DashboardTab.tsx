@@ -35,6 +35,7 @@ function compressImage(file) {
 function AddEntryModal({type,t,weightKg,entries,onAdd,onClose}){
   const [text,setText]=useState(""),[loading,setLoading]=useState(false),[preview,setPreview]=useState(null);
   const [locked,setLocked]=useState(false);
+  const [countsTowardGoal,setCountsTowardGoal]=useState(true);
   const [imageDataUrl,setImageDataUrl]=useState(null);
   const [imageBase64,setImageBase64]=useState(null);
   const [imageMediaType,setImageMediaType]=useState('image/jpeg');
@@ -100,7 +101,13 @@ function AddEntryModal({type,t,weightKg,entries,onAdd,onClose}){
     setLocked(false);
   }
 
-  function confirm(){if(!preview||preview.error)return;onAdd({...preview,ts:Date.now(),date:todayKey()});onClose();}
+  function confirm(){
+    if(!preview||preview.error)return;
+    const entry={...preview,ts:Date.now(),date:todayKey()};
+    if(type==="activity") entry.countsTowardGoal=countsTowardGoal;
+    onAdd(entry);
+    onClose();
+  }
 
   const numInp={background:"none",border:"none",textAlign:"center",fontSize:14,fontWeight:700,padding:0,outline:"none",width:"100%"};
   const nf=(ico,field,unit,color)=>(
@@ -130,10 +137,16 @@ function AddEntryModal({type,t,weightKg,entries,onAdd,onClose}){
           </div>)}
 
         {type==="food"&&!locked&&(
-          <label style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6,background:CLR.card2,border:"1px solid "+CLR.border,borderRadius:10,padding:"9px",cursor:"pointer",fontSize:13,marginBottom:8,color:CLR.text,userSelect:"none"}}>
-            📷 Camera
-            <input type="file" accept="image/*" capture="environment" style={{display:"none"}} onChange={handleImageSelect}/>
-          </label>)}
+          <div style={{display:"flex",gap:8,marginBottom:8}}>
+            <label style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:6,background:CLR.card2,border:"1px solid "+CLR.border,borderRadius:10,padding:"9px",cursor:"pointer",fontSize:13,color:CLR.text,userSelect:"none"}}>
+              📷 Camera
+              <input type="file" accept="image/*" capture="environment" style={{display:"none"}} onChange={handleImageSelect}/>
+            </label>
+            <label style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:6,background:CLR.card2,border:"1px solid "+CLR.border,borderRadius:10,padding:"9px",cursor:"pointer",fontSize:13,color:CLR.text,userSelect:"none"}}>
+              🖼 Gallery
+              <input type="file" accept="image/*" style={{display:"none"}} onChange={handleImageSelect}/>
+            </label>
+          </div>)}
 
         {imageDataUrl&&(
           <div style={{position:"relative",marginBottom:8,borderRadius:10,overflow:"hidden",border:"1px solid "+CLR.border}}>
@@ -164,6 +177,12 @@ function AddEntryModal({type,t,weightKg,entries,onAdd,onClose}){
 
         {preview?.error&&<div style={{color:CLR.red,fontSize:13,marginBottom:8}}>Failed to analyze.</div>}
 
+        {type==="activity"&&(
+          <label style={{display:"flex",alignItems:"center",gap:8,fontSize:13,color:CLR.text,marginBottom:10,cursor:"pointer",userSelect:"none"}}>
+            <input type="checkbox" checked={countsTowardGoal} onChange={ev=>setCountsTowardGoal(ev.target.checked)} style={{width:16,height:16,cursor:"pointer",accentColor:CLR.green}}/>
+            Count towards weekly goal
+          </label>)}
+
         <div style={{display:"flex",gap:8}}>
           {locked&&<Btn variant="ghost" onClick={()=>runAI(text,imageBase64,imageMediaType)} disabled={loading}>🔄 {loading?t.analyzing:"Recalculate"}</Btn>}
           {preview&&!preview.error&&<Btn onClick={confirm} style={{flex:1}}>{t.add}</Btn>}
@@ -192,7 +211,7 @@ export function DashboardTab({t,appData,entries,setEntries,onEOD,deleteEntry}){
     setEodConfirm(false);
   }
   const wkStart=weekStart(today);
-  const weekWorkouts=[...new Set(entries.filter(e=>e.type==="activity"&&e.date>=wkStart&&e.date<=today).map(e=>e.date))].length;
+  const weekWorkouts=[...new Set(entries.filter(e=>e.type==="activity"&&e.date>=wkStart&&e.date<=today&&e.countsTowardGoal!==false).map(e=>e.date))].length;
   const currentWeek=programWeekOf(appData.goals.startDate,today);
   const isBreakWeek=currentWeek!=null&&(appData.goals.breakWeeks||[]).includes(currentWeek);
   const breakCal=Math.round(goals.targetCal+(appData.goals.deficit||0)*1.5);
