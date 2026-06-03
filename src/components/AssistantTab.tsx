@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, memo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { CLR, round1 } from "../lib/utils";
@@ -30,6 +30,59 @@ const mdComponents = {
   th: ({children}) => <th style={{background:CLR.card,padding:'6px 10px',textAlign:'left',fontWeight:600,color:CLR.muted,borderBottom:'1px solid '+CLR.border,whiteSpace:'nowrap'}}>{children}</th>,
   td: ({children}) => <td style={{padding:'5px 10px',borderBottom:'1px solid '+CLR.border+'44',color:CLR.text,whiteSpace:'nowrap'}}>{children}</td>,
 };
+
+const remarkPlugins = [remarkGfm];
+const typeIcon = {eod:"🌙",measurement:"⚖️",week:"📊"};
+
+const ChatMessage = memo(function ChatMessage({msg, appData, t}) {
+  if(msg.hidden) return null;
+  if(msg.eventType){
+    return(
+      <div style={{margin:"10px 0"}}>
+        <div style={{background:CLR.card2,border:"1px solid "+CLR.border,borderRadius:12,padding:"12px 14px"}}>
+          <div style={{fontSize:11,color:CLR.muted,marginBottom:6}}>{typeIcon[msg.eventType]} {msg.eventType==="eod"?t.endOfDaySummary:msg.eventType==="measurement"?t.newMeasurement:t.weekSummary}</div>
+          {msg.eventType==="eod"&&msg.data&&(()=>{
+            const d=msg.data,g=appData.goals.nutrition;
+            return<div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6}}>
+              {[["🔥","Net cal",d.net??Math.round(d.cal-d.burned),g.targetCal,"kcal",CLR.purple],["💪","Prot",Math.round(d.protein),g.protein,"g",CLR.green],["💧","Water",round1(d.water),g.water,"L",CLR.blue],["🌾","Carbs",Math.round(d.carbs),g.carbs,"g",CLR.amber],["🥑","Fat",Math.round(d.fat),g.fat,"g",CLR.red],["🏃","Burned",Math.round(d.burned),"-","kcal",CLR.teal]].map(([ico,lbl,v,mx,u,c])=>(
+                <div key={lbl} style={{background:CLR.card,borderRadius:8,padding:"6px 8px",textAlign:"center"}}>
+                  <div style={{fontSize:10,color:CLR.muted}}>{ico} {lbl}</div>
+                  <div style={{fontSize:14,fontWeight:700,color:v>mx&&mx!=="-"?CLR.red:c}}>{v}</div>
+                  <div style={{fontSize:10,color:CLR.dim}}>{mx!=="-"?"/"+mx:""} {u}</div>
+                </div>))}</div>;
+          })()}
+          {msg.eventType==="measurement"&&msg.data&&(()=>{
+            const d=msg.data;
+            return<div style={{display:"flex",gap:10}}>
+              {[[d.weight,"kg",CLR.purple,"⚖️"],[d.waist,"cm",CLR.teal,"📏"],[d.fat,"%",CLR.amber,"💪"]].filter(([v])=>v).map(([v,u,c,ico])=>(
+                <div key={u} style={{flex:1,background:CLR.card,borderRadius:8,padding:"8px",textAlign:"center"}}>
+                  <div style={{fontSize:12}}>{ico}</div><div style={{fontSize:18,fontWeight:700,color:c}}>{v}</div><div style={{fontSize:10,color:CLR.dim}}>{u}</div>
+                </div>))}
+            </div>;
+          })()}
+          {msg.eventType==="week"&&msg.data&&(()=>{
+            const d=msg.data,g=appData.goals.nutrition;
+            return<div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6}}>
+              {[["Avg net cal",Math.round(d.net??d.cal),g.targetCal,"kcal",CLR.purple],["Avg Prot",Math.round(d.protein),g.protein,"g",CLR.green],["Avg Water",round1(d.water),g.water,"L",CLR.blue]].map(([lbl,v,mx,u,c])=>(
+                <div key={lbl} style={{background:CLR.card,borderRadius:8,padding:"6px 8px",textAlign:"center"}}>
+                  <div style={{fontSize:10,color:CLR.muted}}>{lbl}</div><div style={{fontSize:14,fontWeight:700,color:c}}>{v}</div><div style={{fontSize:10,color:CLR.dim}}>/{mx} {u}</div>
+                </div>))}</div>;
+          })()}
+        </div>
+      </div>
+    );
+  }
+  const isUser=msg.role==="user";
+  return(
+    <div style={{display:"flex",flexDirection:isUser?"row-reverse":"row",marginBottom:10}}>
+      <div style={{maxWidth:"82%",background:isUser?CLR.purpleBg:CLR.card2,borderRadius:isUser?"16px 16px 4px 16px":"16px 16px 16px 4px",padding:"10px 14px",fontSize:13,lineHeight:1.6,color:isUser?"#e9d5ff":CLR.text,border:isUser?"none":"1px solid "+CLR.border,wordBreak:"break-word"}}>
+        {isUser
+          ? <span style={{whiteSpace:'pre-wrap'}}>{msg.content}</span>
+          : <ReactMarkdown remarkPlugins={remarkPlugins} components={mdComponents}>{msg.content}</ReactMarkdown>}
+      </div>
+    </div>
+  );
+});
 
 export function AssistantTab({t,appData,entries,bodyPoints,chatHistory,setChatHistory,setUnreadCount,lang,status,setStatus}){
   const [input,setInput]=useState("");
@@ -71,61 +124,13 @@ export function AssistantTab({t,appData,entries,bodyPoints,chatHistory,setChatHi
     if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); send(); }
   }
 
-  const typeIcon={eod:"🌙",measurement:"⚖️",week:"📊"};
-
   return(
     <div style={{height:"100%",display:"flex",flexDirection:"column",overflow:"hidden"}}>
       {/* Scrollable messages */}
       <div style={{flex:1,overflowY:"auto",padding:"12px 16px 8px"}}>
-        {chatHistory.map((msg,i)=>{
-          if(msg.hidden) return null;
-          if(msg.eventType){
-            return(
-              <div key={i} style={{margin:"10px 0"}}>
-                <div style={{background:CLR.card2,border:"1px solid "+CLR.border,borderRadius:12,padding:"12px 14px"}}>
-                  <div style={{fontSize:11,color:CLR.muted,marginBottom:6}}>{typeIcon[msg.eventType]} {msg.eventType==="eod"?t.endOfDaySummary:msg.eventType==="measurement"?t.newMeasurement:t.weekSummary}</div>
-                  {msg.eventType==="eod"&&msg.data&&(()=>{
-                    const d=msg.data,g=appData.goals.nutrition;
-                    return<div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6}}>
-                      {[["🔥","Net cal",d.net??Math.round(d.cal-d.burned),g.targetCal,"kcal",CLR.purple],["💪","Prot",Math.round(d.protein),g.protein,"g",CLR.green],["💧","Water",round1(d.water),g.water,"L",CLR.blue],["🌾","Carbs",Math.round(d.carbs),g.carbs,"g",CLR.amber],["🥑","Fat",Math.round(d.fat),g.fat,"g",CLR.red],["🏃","Burned",Math.round(d.burned),"-","kcal",CLR.teal]].map(([ico,lbl,v,mx,u,c])=>(
-                        <div key={lbl} style={{background:CLR.card,borderRadius:8,padding:"6px 8px",textAlign:"center"}}>
-                          <div style={{fontSize:10,color:CLR.muted}}>{ico} {lbl}</div>
-                          <div style={{fontSize:14,fontWeight:700,color:v>mx&&mx!=="-"?CLR.red:c}}>{v}</div>
-                          <div style={{fontSize:10,color:CLR.dim}}>{mx!=="-"?"/"+mx:""} {u}</div>
-                        </div>))}</div>;
-                  })()}
-                  {msg.eventType==="measurement"&&msg.data&&(()=>{
-                    const d=msg.data;
-                    return<div style={{display:"flex",gap:10}}>
-                      {[[d.weight,"kg",CLR.purple,"⚖️"],[d.waist,"cm",CLR.teal,"📏"],[d.fat,"%",CLR.amber,"💪"]].filter(([v])=>v).map(([v,u,c,ico])=>(
-                        <div key={u} style={{flex:1,background:CLR.card,borderRadius:8,padding:"8px",textAlign:"center"}}>
-                          <div style={{fontSize:12}}>{ico}</div><div style={{fontSize:18,fontWeight:700,color:c}}>{v}</div><div style={{fontSize:10,color:CLR.dim}}>{u}</div>
-                        </div>))}
-                    </div>;
-                  })()}
-                  {msg.eventType==="week"&&msg.data&&(()=>{
-                    const d=msg.data,g=appData.goals.nutrition;
-                    return<div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6}}>
-                      {[["Avg net cal",Math.round(d.net??d.cal),g.targetCal,"kcal",CLR.purple],["Avg Prot",Math.round(d.protein),g.protein,"g",CLR.green],["Avg Water",round1(d.water),g.water,"L",CLR.blue]].map(([lbl,v,mx,u,c])=>(
-                        <div key={lbl} style={{background:CLR.card,borderRadius:8,padding:"6px 8px",textAlign:"center"}}>
-                          <div style={{fontSize:10,color:CLR.muted}}>{lbl}</div><div style={{fontSize:14,fontWeight:700,color:c}}>{v}</div><div style={{fontSize:10,color:CLR.dim}}>/{mx} {u}</div>
-                        </div>))}</div>;
-                  })()}
-                </div>
-              </div>
-            );
-          }
-          const isUser=msg.role==="user";
-          return(
-            <div key={i} style={{display:"flex",flexDirection:isUser?"row-reverse":"row",marginBottom:10}}>
-              <div style={{maxWidth:"82%",background:isUser?CLR.purpleBg:CLR.card2,borderRadius:isUser?"16px 16px 4px 16px":"16px 16px 16px 4px",padding:"10px 14px",fontSize:13,lineHeight:1.6,color:isUser?"#e9d5ff":CLR.text,border:isUser?"none":"1px solid "+CLR.border,wordBreak:"break-word"}}>
-                {isUser
-                  ? <span style={{whiteSpace:'pre-wrap'}}>{msg.content}</span>
-                  : <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>{msg.content}</ReactMarkdown>}
-              </div>
-            </div>
-          );
-        })}
+        {chatHistory.map((msg,i)=>(
+          <ChatMessage key={msg.ts??i} msg={msg} appData={appData} t={t}/>
+        ))}
         {status&&(
           <div style={{display:"flex",alignItems:"center",gap:8,padding:"8px 4px"}}>
             <div style={{display:"flex",gap:4}}>{[0,1,2].map(i=><div key={i} style={{width:6,height:6,borderRadius:"50%",background:CLR.purple,animation:"pulse 1.2s infinite",animationDelay:i*0.2+"s"}}/>)}</div>

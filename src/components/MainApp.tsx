@@ -65,7 +65,13 @@ export function MainApp({data,t,lang,toggleLang,onReset,onLogout,greetOnMount}){
 
   useEffect(()=>{ if(!storeReady)return; storageSet("entries",JSON.stringify(entries)).catch(()=>{}); },[entries,storeReady]);
   useEffect(()=>{ if(!storeReady)return; storageSet("bodyPoints",JSON.stringify(bodyPoints)).catch(()=>{}); },[bodyPoints,storeReady]);
-  useEffect(()=>{ if(!storeReady)return; storageSet("chatHistory",JSON.stringify(chatHistory)).catch(()=>{}); },[chatHistory,storeReady]);
+  const chatSaveTimer=useRef(null);
+  useEffect(()=>{
+    if(!storeReady)return;
+    if(chatSaveTimer.current) clearTimeout(chatSaveTimer.current);
+    chatSaveTimer.current=setTimeout(()=>{ storageSet("chatHistory",JSON.stringify(chatHistory)).catch(()=>{}); },1500);
+    return()=>clearTimeout(chatSaveTimer.current);
+  },[chatHistory,storeReady]);
 
   useEffect(()=>{
     if(!storeReady||!greetOnMount)return;
