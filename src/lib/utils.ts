@@ -41,10 +41,10 @@ export function calcFatPct(gender,bmi,height=null,waist=null){
   if(height&&waist){
     // Relative Fat Mass formula (Woolcott & Bergman 2018) — more accurate than BMI alone
     const rfm=gender==="male"?64-(20*height/waist):76-(20*height/waist);
-    return Math.round(Math.max(3,Math.min(60,rfm)));
+    return Math.round(Math.max(3,Math.min(60,rfm))*10)/10;
   }
   if(!bmi)return null;
-  return gender==="male"?Math.round(1.20*bmi+0.23*30-16.2):Math.round(1.20*bmi+0.23*30-5.4);
+  return gender==="male"?Math.round((1.20*bmi+0.23*30-16.2)*10)/10:Math.round((1.20*bmi+0.23*30-5.4)*10)/10;
 }
 export function calcTDEE(p){
   const bmr=p.gender==="male"?10*p.weight+6.25*p.height-5*p.age+5:10*p.weight+6.25*p.height-5*p.age-161;

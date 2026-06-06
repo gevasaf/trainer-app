@@ -70,7 +70,7 @@ export function TimelineTab({t,appData,bodyPoints,setBodyPoints,onMeasurement,la
               <div style={{display:"flex",gap:12,alignItems:"center"}}>
                 {p.weight&&<span style={{color:CLR.purple}}>{p.weight} kg</span>}
                 {p.waist&&<span style={{color:CLR.teal}}>{p.waist} cm</span>}
-                {p.fat&&<span style={{color:CLR.amber}}>{p.fat}%</span>}
+                {p.fat!=null&&<span style={{color:CLR.amber}}>{Number(p.fat).toFixed(1)}%</span>}
                 {pendingDelete===p.ts
                   ?<><button onClick={()=>setPendingDelete(null)} style={{background:"none",border:"1px solid "+CLR.border,color:CLR.muted,cursor:"pointer",fontSize:11,padding:"2px 7px",borderRadius:6,lineHeight:1.5}}>Cancel</button>
                     <button onClick={()=>{deleteBodyPoint(p.ts);setPendingDelete(null);}} style={{background:CLR.red,border:"none",color:"#fff",cursor:"pointer",fontSize:11,padding:"2px 7px",borderRadius:6,lineHeight:1.5}}>Delete</button></>
