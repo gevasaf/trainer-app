@@ -9,9 +9,7 @@ function BodyStatModal({t,profile,onSave,onClose}){
   function save(){
     if(!fw&&!fws)return;
     const w=parseFloat(fw)||null,ws=parseFloat(fws)||null;
-    const fat=profile.height&&ws?calcFatPct(profile.gender,null,profile.height,ws)
-      :w&&profile.height?calcFatPct(profile.gender,Math.round((w/((profile.height/100)**2))*10)/10):null;
-    onSave({date:todayKey(),weight:w,waist:ws,fat,ts:Date.now()});
+    onSave({date:todayKey(),weight:w,waist:ws,ts:Date.now()});
     onClose();
   }
   return(
@@ -31,14 +29,28 @@ function BodyStatModal({t,profile,onSave,onClose}){
   );
 }
 
+function deriveFat(p, profile){
+  if(p.waist&&profile?.height) return calcFatPct(profile.gender,null,profile.height,p.waist);
+  if(p.weight&&profile?.height) return calcFatPct(profile.gender,Math.round(p.weight/((profile.height/100)**2)*10)/10);
+  return p.fat??null;
+}
+
 export function TimelineTab({t,appData,bodyPoints,setBodyPoints,onMeasurement,lang,deleteBodyPoint}){
   const [showModal,setShowModal]=useState(false);
   const [pendingDelete,setPendingDelete]=useState(null);
   const goals=appData.goals;
   const profile=appData.profile;
-  const displayPoints=bodyPoints.map(p=>
-    p.waist&&profile?.height?{...p,fat:calcFatPct(profile.gender,null,profile.height,p.waist)}:p
-  );
+
+  const baselinePoint=goals.startDate?{
+    date:goals.startDate,weight:goals.startWeight||null,waist:goals.startWaist||null,
+    ts:new Date(goals.startDate).getTime(),isBaseline:true
+  }:null;
+
+  const displayPoints=[
+    ...(baselinePoint?[baselinePoint]:[]),
+    ...bodyPoints
+  ].map(p=>({...p,fat:deriveFat(p,profile)}));
+
   function handleSave(pt){
     setBodyPoints(prev=>[...prev,pt]);
     onMeasurement(pt);
@@ -70,15 +82,15 @@ export function TimelineTab({t,appData,bodyPoints,setBodyPoints,onMeasurement,la
         {displayPoints.length>0&&<Card>
           {[...displayPoints].reverse().map((p,i)=>(
             <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid "+CLR.border,fontSize:13}}>
-              <span style={{color:CLR.muted}}>{p.date}</span>
+              <span style={{color:CLR.muted}}>{p.date}{p.isBaseline&&<span style={{color:CLR.dim,fontSize:11}}> (start)</span>}</span>
               <div style={{display:"flex",gap:12,alignItems:"center"}}>
                 {p.weight&&<span style={{color:CLR.purple}}>{p.weight} kg</span>}
                 {p.waist&&<span style={{color:CLR.teal}}>{p.waist} cm</span>}
                 {p.fat!=null&&<span style={{color:CLR.amber}}>{Number(p.fat).toFixed(1)}%</span>}
-                {pendingDelete===p.ts
+                {!p.isBaseline&&(pendingDelete===p.ts
                   ?<><button onClick={()=>setPendingDelete(null)} style={{background:"none",border:"1px solid "+CLR.border,color:CLR.muted,cursor:"pointer",fontSize:11,padding:"2px 7px",borderRadius:6,lineHeight:1.5}}>Cancel</button>
                     <button onClick={()=>{deleteBodyPoint(p.ts);setPendingDelete(null);}} style={{background:CLR.red,border:"none",color:"#fff",cursor:"pointer",fontSize:11,padding:"2px 7px",borderRadius:6,lineHeight:1.5}}>Delete</button></>
-                  :<button onClick={()=>setPendingDelete(p.ts)} style={{background:"none",border:"none",color:CLR.dim,cursor:"pointer",fontSize:14,padding:"2px 4px",lineHeight:1,opacity:0.6}} title="Delete measurement">🗑</button>}
+                  :<button onClick={()=>setPendingDelete(p.ts)} style={{background:"none",border:"none",color:CLR.dim,cursor:"pointer",fontSize:14,padding:"2px 4px",lineHeight:1,opacity:0.6}} title="Delete measurement">🗑</button>)}
               </div>
             </div>))}
         </Card>}
