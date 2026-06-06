@@ -8,7 +8,7 @@ export function LogTab({t,entries,bodyPoints,deleteEntry,deleteBodyPoint}){
   const [pendingDelete,setPendingDelete]=useState(null);
   const typeIcon={food:"🍽",activity:"🏃",eod:"🌙",body:"⚖️"};
   const typeColor={food:CLR.purple,activity:CLR.green,eod:CLR.amber,body:CLR.teal};
-  const all=[...entries,...bodyPoints.map(p=>({...p,type:"body",label:"Weight: "+(p.weight||"?")+"kg  Waist: "+(p.waist||"?")+"cm"+(p.fat?"  Fat: "+p.fat+"%":"")}))].sort((a,b)=>b.ts-a.ts);
+  const all=[...entries,...bodyPoints.map(p=>({...p,type:"body",label:"Weight: "+(p.weight||"?")+"kg  Waist: "+(p.waist||"?")+"cm"+(p.fat!=null?"  Fat: "+Number(p.fat).toFixed(1)+"%":"")}))].sort((a,b)=>b.ts-a.ts);
   const filtered=all.filter(e=>{
     if(filterType!=="all"&&e.type!==filterType)return false;
     if(fromDate&&e.date<fromDate)return false;
