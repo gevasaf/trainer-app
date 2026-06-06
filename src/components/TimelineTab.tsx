@@ -35,6 +35,10 @@ export function TimelineTab({t,appData,bodyPoints,setBodyPoints,onMeasurement,la
   const [showModal,setShowModal]=useState(false);
   const [pendingDelete,setPendingDelete]=useState(null);
   const goals=appData.goals;
+  const profile=appData.profile;
+  const displayPoints=bodyPoints.map(p=>
+    p.waist&&profile?.height?{...p,fat:calcFatPct(profile.gender,null,profile.height,p.waist)}:p
+  );
   function handleSave(pt){
     setBodyPoints(prev=>[...prev,pt]);
     onMeasurement(pt);
@@ -48,7 +52,7 @@ export function TimelineTab({t,appData,bodyPoints,setBodyPoints,onMeasurement,la
         <Card style={{padding:"12px 10px",marginBottom:10}}>
           <TimelineChart weeks={goals.durationWeeks} breakWeeks={goals.breakWeeks} startDate={new Date(goals.startDate)}
             goals={{deficit:goals.deficit,startWeight:goals.startWeight,startFat:goals.startFat||20,startWaist:goals.startWaist,workoutsPerWeek:goals.workoutsPerWeek||4,proteinPerKg:goals.proteinPerKg||1.8,gender:appData.profile.gender||"male"}}
-            realPoints={bodyPoints} lang={lang}/>
+            realPoints={displayPoints} lang={lang}/>
         </Card>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:10}}>
           {[[t.targetWeight,goals.targetWeight,"kg",CLR.purple],[t.targetFat,goals.targetFat?goals.targetFat+"%":"--","",CLR.amber],[t.targetWaist,goals.targetWaist,"cm",CLR.teal]].map(([l,v,u,c])=>(
@@ -63,8 +67,8 @@ export function TimelineTab({t,appData,bodyPoints,setBodyPoints,onMeasurement,la
 
       {/* Scrollable history */}
       <div style={{flex:1,overflowY:"auto",padding:"0 16px 16px"}}>
-        {bodyPoints.length>0&&<Card>
-          {[...bodyPoints].reverse().map((p,i)=>(
+        {displayPoints.length>0&&<Card>
+          {[...displayPoints].reverse().map((p,i)=>(
             <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid "+CLR.border,fontSize:13}}>
               <span style={{color:CLR.muted}}>{p.date}</span>
               <div style={{display:"flex",gap:12,alignItems:"center"}}>
@@ -78,7 +82,7 @@ export function TimelineTab({t,appData,bodyPoints,setBodyPoints,onMeasurement,la
               </div>
             </div>))}
         </Card>}
-        {bodyPoints.length===0&&<div style={{textAlign:"center",color:CLR.dim,padding:"32px 0",fontSize:13}}>No measurements yet — record your first above.</div>}
+        {displayPoints.length===0&&<div style={{textAlign:"center",color:CLR.dim,padding:"32px 0",fontSize:13}}>No measurements yet — record your first above.</div>}
       </div>
     </div>
   );
