@@ -5,6 +5,7 @@ import { storageGet, storageSet, clearUserData } from "../lib/storage";
 import { callAssistant } from "../lib/api";
 import { ConfirmModal } from "./ui";
 import { DashboardTab } from "./DashboardTab";
+import { WeeklyTab } from "./WeeklyTab";
 import { TimelineTab } from "./TimelineTab";
 import { AssistantTab } from "./AssistantTab";
 import { LogTab } from "./LogTab";
@@ -135,7 +136,7 @@ export function MainApp({data,t,lang,toggleLang,onReset,onLogout,greetOnMount}){
     setAssistantStatus(null);
   }
 
-  const tabs=[t.dashboard,t.timeline,t.assistant,t.log];
+  const tabs=[t.today,t.week,t.timeline,t.assistant,t.log];
 
   return(
     <div style={{height:"100dvh",background:CLR.bg,color:CLR.text,fontFamily:"system-ui,sans-serif",direction:t.dir,display:"flex",flexDirection:"column",alignItems:"center",overflow:"hidden"}}>
@@ -163,7 +164,7 @@ export function MainApp({data,t,lang,toggleLang,onReset,onLogout,greetOnMount}){
           <button key={i} onClick={()=>setTab(i)}
             style={{background:"none",border:"none",color:tab===i?CLR.purple:CLR.muted,borderBottom:tab===i?"2px solid "+CLR.purple:"2px solid transparent",padding:"10px 14px",cursor:"pointer",fontSize:13,fontWeight:tab===i?600:400,whiteSpace:"nowrap",flexShrink:0,position:"relative"}}>
             {tb}
-            {i===2&&unreadCount>0&&tab!==2&&(
+            {i===3&&unreadCount>0&&tab!==3&&(
               <span style={{position:"absolute",top:6,right:4,background:CLR.red,color:"#fff",borderRadius:10,fontSize:9,fontWeight:700,padding:"1px 5px",minWidth:14,textAlign:"center"}}>{unreadCount}</span>)}
           </button>))}
       </div>
@@ -171,9 +172,10 @@ export function MainApp({data,t,lang,toggleLang,onReset,onLogout,greetOnMount}){
       {/* Content area — each tab manages its own scroll */}
       <div style={{width:"100%",maxWidth:680,flex:1,overflow:"hidden",display:"flex",flexDirection:"column"}}>
         {tab===0&&<DashboardTab t={t} appData={data} entries={entries} setEntries={setEntries} onEOD={triggerEODEvent} deleteEntry={ts=>setEntries(prev=>prev.filter(e=>e.ts!==ts))}/>}
-        {tab===1&&<TimelineTab t={t} appData={data} bodyPoints={bodyPoints} setBodyPoints={setBodyPoints} onMeasurement={handleMeasurement} lang={lang} deleteBodyPoint={ts=>setBodyPoints(prev=>prev.filter(p=>p.ts!==ts))}/>}
-        {tab===2&&<AssistantTab t={t} appData={data} entries={entries} bodyPoints={bodyPoints} chatHistory={chatHistory} setChatHistory={setChatHistory} unreadCount={unreadCount} setUnreadCount={setUnreadCount} lang={lang} status={assistantStatus} setStatus={setAssistantStatus}/>}
-        {tab===3&&<LogTab t={t} entries={entries} bodyPoints={bodyPoints} profile={data.profile} deleteEntry={ts=>setEntries(prev=>prev.filter(e=>e.ts!==ts))} deleteBodyPoint={ts=>setBodyPoints(prev=>prev.filter(p=>p.ts!==ts))}/>}
+        {tab===1&&<WeeklyTab t={t} appData={data} entries={entries} lang={lang}/>}
+        {tab===2&&<TimelineTab t={t} appData={data} bodyPoints={bodyPoints} setBodyPoints={setBodyPoints} onMeasurement={handleMeasurement} lang={lang} deleteBodyPoint={ts=>setBodyPoints(prev=>prev.filter(p=>p.ts!==ts))}/>}
+        {tab===3&&<AssistantTab t={t} appData={data} entries={entries} bodyPoints={bodyPoints} chatHistory={chatHistory} setChatHistory={setChatHistory} unreadCount={unreadCount} setUnreadCount={setUnreadCount} lang={lang} status={assistantStatus} setStatus={setAssistantStatus}/>}
+        {tab===4&&<LogTab t={t} entries={entries} bodyPoints={bodyPoints} profile={data.profile} deleteEntry={ts=>setEntries(prev=>prev.filter(e=>e.ts!==ts))} deleteBodyPoint={ts=>setBodyPoints(prev=>prev.filter(p=>p.ts!==ts))}/>}
       </div>
     </div>
   );
