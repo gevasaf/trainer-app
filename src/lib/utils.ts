@@ -107,7 +107,13 @@ export function buildEODContext(entries, dateKey, goals, isNewWeek, allEntries, 
   const isBreakWk = currentWeek!=null && (goals.breakWeeks||[]).includes(currentWeek);
   const effectiveWorkoutGoal = isBreakWk ? Math.floor((goals.workoutsPerWeek||0)/2) : (goals.workoutsPerWeek||0);
   const effectiveCal = isBreakWk ? Math.round(g.targetCal + (goals.deficit||0)*1.5) : g.targetCal;
-  let text = `[END OF DAY: ${dateKey}]${isBreakWk?" [BREAK WEEK "+currentWeek+"]":""}${isAuto?"":" [USER COMMITTED — they chose to close their day and will not eat again tonight]"}\nNet calories: ${netCal} / ${effectiveCal} kcal | Eaten: ${Math.round(dt.cal)} kcal | Burned: ${Math.round(dt.burned)} kcal | Protein: ${Math.round(dt.protein)}g / ${g.protein}g | Carbs: ${Math.round(dt.carbs)}g / ${g.carbs}g | Fat: ${Math.round(dt.fat)}g / ${g.fat}g | Fiber: ${Math.round(dt.fiber)}g / ${g.fiber}g | Water: ${round1(dt.water)}L / ${g.water}L | Workouts this week: ${weekWorkouts} / ${effectiveWorkoutGoal}`;
+  const todayActivities = entries.filter(e => e.type === "activity" && e.date === dateKey);
+  const activityLine = todayActivities.length
+    ? "\nToday's activities: " + todayActivities.map(e =>
+        `${e.label||"activity"}${e.duration_min?` ${e.duration_min}min`:""}${e.calories_burned?`, ${Math.round(e.calories_burned)}kcal burned`:""} [${e.countsTowardGoal===false?"NOT counted toward goal":"counts toward goal"}]`
+      ).join(" | ")
+    : "";
+  let text = `[END OF DAY: ${dateKey}]${isBreakWk?" [BREAK WEEK "+currentWeek+"]":""}${isAuto?"":" [USER COMMITTED — they chose to close their day and will not eat again tonight]"}\nNet calories: ${netCal} / ${effectiveCal} kcal | Eaten: ${Math.round(dt.cal)} kcal | Burned: ${Math.round(dt.burned)} kcal | Protein: ${Math.round(dt.protein)}g / ${g.protein}g | Carbs: ${Math.round(dt.carbs)}g / ${g.carbs}g | Fat: ${Math.round(dt.fat)}g / ${g.fat}g | Fiber: ${Math.round(dt.fiber)}g / ${g.fiber}g | Water: ${round1(dt.water)}L / ${g.water}L | Workouts this week: ${weekWorkouts} / ${effectiveWorkoutGoal}${activityLine}`;
   if (isNewWeek) {
     const ws = weekStart(dateKey);
     const days = [...new Set(allEntries.filter(e=>weekStart(e.date)===ws&&e.date<=dateKey).map(e=>e.date))].sort();
