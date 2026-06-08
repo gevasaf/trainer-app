@@ -102,7 +102,7 @@ export function buildEODContext(entries, dateKey, goals, isNewWeek, allEntries, 
   const g = goals.nutrition;
   const netCal = Math.round(dt.cal - dt.burned);
   const ws = weekStart(dateKey);
-  const weekWorkouts = [...new Set(allEntries.filter(e=>e.type==="activity"&&e.date>=ws&&e.date<=dateKey).map(e=>e.date))].length;
+  const weekWorkouts = [...new Set(allEntries.filter(e=>e.type==="activity"&&e.date>=ws&&e.date<=dateKey&&e.countsTowardGoal!==false).map(e=>e.date))].length;
   const currentWeek = programWeekOf(goals.startDate, dateKey);
   const isBreakWk = currentWeek!=null && (goals.breakWeeks||[]).includes(currentWeek);
   const effectiveWorkoutGoal = isBreakWk ? Math.floor((goals.workoutsPerWeek||0)/2) : (goals.workoutsPerWeek||0);
