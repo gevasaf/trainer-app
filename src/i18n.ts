@@ -1,8 +1,12 @@
 // @ts-nocheck
 export const T = {
   en: {
-    dir:"ltr", setup:"Setup", dashboard:"Dashboard", timeline:"Timeline",
+    dir:"ltr", setup:"Setup", dashboard:"Dashboard", today:"Today", week:"Week", timeline:"Timeline",
     assistant:"Assistant", log:"Log",
+    weekDays:"Days this week",
+    noWeekEOD:"No days recorded yet. Keep logging — averages will appear here after your first End of Day.",
+    workoutsThisWeek:"Workouts this week",
+    netKcal:"net kcal",
     step1:"About You", step2:"Your Goals", next:"Next →",
     name:"Name", age:"Age (yrs)", gender:"Gender", male:"Male", female:"Female",
     height:"Height (cm)", weight:"Weight (kg)", waist:"Waist (cm)",
@@ -55,8 +59,12 @@ export const T = {
     changePhoto:"Change photo",
   },
   he: {
-    dir:"rtl", setup:"הגדרה", dashboard:"לוח בקרה", timeline:"ציר זמן",
+    dir:"rtl", setup:"הגדרה", dashboard:"לוח בקרה", today:"היום", week:"שבוע", timeline:"ציר זמן",
     assistant:"מאמן", log:"יומן",
+    weekDays:"ימים השבוע",
+    noWeekEOD:"אין ימים מתועדים עדיין. המשך לתעד — הממוצע יופיע כאן לאחר סיום יום ראשון.",
+    workoutsThisWeek:"אימונים השבוע",
+    netKcal:"קל' נטו",
     step1:"על עצמך", step2:"היעדים שלך", next:"הבא →",
     name:"שם", age:"גיל", gender:"מין", male:"זכר", female:"נקבה",
     height:"גובה (ס\"מ)", weight:"משקל (ק\"ג)", waist:"מותניים (ס\"מ)",

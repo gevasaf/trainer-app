@@ -87,13 +87,16 @@ function aggregateLogQuery(allEntries: any[], { dateFrom, dateTo, type, search }
     const g: Record<string, any> = {}
     activityEntries.forEach(e => {
       const k = (e.label ?? 'activity').toLowerCase()
-      if (!g[k]) g[k] = { count: 0, burned: 0, min: 0 }
+      if (!g[k]) g[k] = { count: 0, burned: 0, min: 0, notCounted: 0 }
       g[k].count++; g[k].burned += e.calories_burned ?? 0; g[k].min += e.duration_min ?? 0
+      if (e.countsTowardGoal === false) g[k].notCounted++
     })
+    const countedDays = [...new Set(activityEntries.filter(e => e.countsTowardGoal !== false).map(e => e.date))].length
+    const notCountedDays = [...new Set(activityEntries.filter(e => e.countsTowardGoal === false).map(e => e.date))].length
     parts.push(
-      `Activity (${activityEntries.length} entries):\n` +
+      `Activity (${activityEntries.length} entries — ${countedDays} day(s) count toward weekly goal, ${notCountedDays} day(s) do not):\n` +
       Object.entries(g).slice(0, 15).map(([k, v]: any) =>
-        `  ${k}: ${v.count}x, total ${v.burned} kcal burned, ${v.min} min`
+        `  ${k}: ${v.count}x, total ${v.burned} kcal burned, ${v.min} min${v.notCounted > 0 ? ` (${v.notCounted}x marked as NOT counting toward weekly goal)` : ''}`
       ).join('\n')
     )
   }

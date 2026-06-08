@@ -1,14 +1,19 @@
 // @ts-nocheck
 import React, { useState } from "react";
-import { CLR } from "../lib/utils";
+import { CLR, calcFatPct } from "../lib/utils";
 import { Card, inp } from "./ui";
 
-export function LogTab({t,entries,bodyPoints,deleteEntry,deleteBodyPoint}){
+export function LogTab({t,entries,bodyPoints,profile,deleteEntry,deleteBodyPoint}){
   const [filterType,setFilterType]=useState("all"),[fromDate,setFromDate]=useState(""),[toDate,setToDate]=useState("");
   const [pendingDelete,setPendingDelete]=useState(null);
   const typeIcon={food:"🍽",activity:"🏃",eod:"🌙",body:"⚖️"};
   const typeColor={food:CLR.purple,activity:CLR.green,eod:CLR.amber,body:CLR.teal};
-  const all=[...entries,...bodyPoints.map(p=>({...p,type:"body",label:"Weight: "+(p.weight||"?")+"kg  Waist: "+(p.waist||"?")+"cm"+(p.fat?"  Fat: "+p.fat+"%":"")}))].sort((a,b)=>b.ts-a.ts);
+  function deriveFat(p){
+    if(p.waist&&profile?.height) return calcFatPct(profile.gender,null,profile.height,p.waist);
+    if(p.weight&&profile?.height) return calcFatPct(profile.gender,Math.round(p.weight/((profile.height/100)**2)*10)/10);
+    return p.fat??null;
+  }
+  const all=[...entries,...bodyPoints.map(p=>{const fat=deriveFat(p);return{...p,type:"body",label:"Weight: "+(p.weight||"?")+"kg  Waist: "+(p.waist||"?")+"cm"+(fat!=null?"  Fat: "+Number(fat).toFixed(1)+"%":"")};})].sort((a,b)=>b.ts-a.ts);
   const filtered=all.filter(e=>{
     if(filterType!=="all"&&e.type!==filterType)return false;
     if(fromDate&&e.date<fromDate)return false;

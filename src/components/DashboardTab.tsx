@@ -247,17 +247,6 @@ export function DashboardTab({t,appData,entries,setEntries,onEOD,deleteEntry}){
         <Card style={{marginBottom:10,padding:"12px 8px"}}>
           <div style={{display:"flex",justifyContent:"space-around",flexWrap:"wrap",gap:6}}>{rings.map(r=><Ring key={r.label} {...r}/>)}</div>
         </Card>
-        {workoutTarget>0&&<Card style={{marginBottom:10,padding:"10px 14px"}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-            <span style={{fontSize:12,color:CLR.muted}}>🏋️ Workouts this week</span>
-            <span style={{fontSize:12,fontWeight:600,color:weekWorkouts>=workoutTarget?CLR.green:CLR.muted}}>{weekWorkouts} / {workoutTarget}</span>
-          </div>
-          <div style={{display:"flex",gap:4}}>
-            {Array.from({length:workoutTarget},(_,i)=>(
-              <div key={i} style={{flex:1,height:5,borderRadius:3,background:i<weekWorkouts?CLR.green:CLR.border}}/>
-            ))}
-          </div>
-        </Card>}
         {!eod&&<div style={{display:"grid",gridTemplateColumns:new Date().getHours()>=19?"1fr 1fr 1fr":"1fr 1fr",gap:8,marginBottom:10}}>
           <Btn onClick={()=>setModal("food")} style={{fontSize:12,padding:"10px 6px"}}>🍽 {t.addFood}</Btn>
           <Btn onClick={()=>setModal("activity")} style={{fontSize:12,padding:"10px 6px",background:CLR.card2,color:CLR.green,border:"1px solid "+CLR.border}}>🏃 {t.addActivity}</Btn>

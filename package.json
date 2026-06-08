@@ -1,6 +1,6 @@
 {
   "name": "trainer-app",
-  "version": "0.1.35",
+  "version": "0.1.39",
   "type": "module",
   "scripts": {
     "dev": "vercel dev",
