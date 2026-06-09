@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React from "react";
+import React, { useState } from "react";
 import { CLR, todayKey, weekStart, dayTotals, round1, programWeekOf } from "../lib/utils";
 import { Card, Ring } from "./ui";
 
@@ -13,16 +13,28 @@ export function WeeklyTab({t, appData, entries, lang}) {
     entries.filter(e => e.type === "eod" && e.date >= wkStart && e.date <= today).map(e => e.date)
   )].sort();
 
-  const n = eodDates.length;
+  // Include today if it has logged data but no EOD yet
+  const todayInEod = eodDates.includes(today);
+  const todayRaw = dayTotals(entries, today);
+  const todayHasData = todayRaw.cal > 0 || todayRaw.burned > 0;
+  const allDates = (!todayInEod && todayHasData) ? [...eodDates, today].sort() : eodDates;
 
-  // Per-day totals for recorded days
-  const dayData = eodDates.map(d => ({ date: d, ...dayTotals(entries, d) }));
+  // Per-day totals for all displayed dates
+  const allDayData = allDates.map(d => ({ date: d, ...dayTotals(entries, d) }));
 
-  // Averages over recorded days only
-  const avgOf = key => n > 0 ? round1(dayData.reduce((s, d) => s + (d[key] || 0), 0) / n) : 0;
-  const avgNet = n > 0 ? Math.round(dayData.reduce((s, d) => s + (d.cal - d.burned), 0) / n) : 0;
-  const avgEaten = n > 0 ? Math.round(dayData.reduce((s, d) => s + d.cal, 0) / n) : 0;
-  const avgBurned = n > 0 ? Math.round(dayData.reduce((s, d) => s + d.burned, 0) / n) : 0;
+  // Toggle state: default on for past EOD days, off for today
+  const [enabled, setEnabled] = useState({});
+  const isDayEnabled = (date) => date in enabled ? enabled[date] : date !== today;
+  const toggleDay = (date) => setEnabled(prev => ({ ...prev, [date]: !isDayEnabled(date) }));
+
+  // Averages over enabled days only
+  const enabledData = allDayData.filter(d => isDayEnabled(d.date));
+  const n = enabledData.length;
+
+  const avgOf = key => n > 0 ? round1(enabledData.reduce((s, d) => s + (d[key] || 0), 0) / n) : 0;
+  const avgNet = n > 0 ? Math.round(enabledData.reduce((s, d) => s + (d.cal - d.burned), 0) / n) : 0;
+  const avgEaten = n > 0 ? Math.round(enabledData.reduce((s, d) => s + d.cal, 0) / n) : 0;
+  const avgBurned = n > 0 ? Math.round(enabledData.reduce((s, d) => s + d.burned, 0) / n) : 0;
 
   // Break week / effective targets
   const currentWeek = programWeekOf(appData.goals.startDate, today);
@@ -115,27 +127,56 @@ export function WeeklyTab({t, appData, entries, lang}) {
             {t.weekDays}
           </div>
 
-          {n === 0 ? (
+          {allDates.length === 0 ? (
             <div style={{ color: CLR.dim, fontSize: 13, textAlign: "center", padding: "20px 8px", lineHeight: 1.7 }}>
               {t.noWeekEOD}
             </div>
           ) : (
-            [...eodDates].reverse().map(date => {
-              const d = dayData.find(x => x.date === date);
+            [...allDates].reverse().map(date => {
+              const d = allDayData.find(x => x.date === date);
               const net = Math.round(d.cal - d.burned);
+              const isToday = date === today;
+              const hasEOD = eodDates.includes(date);
+              const active = isDayEnabled(date);
               return (
-                <div key={date} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid " + CLR.border }}>
-                  <div>
-                    <div style={{ fontSize: 13, color: CLR.text, fontWeight: 500 }}>{fmtDay(date)}</div>
+                <div key={date} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid " + CLR.border, opacity: active ? 1 : 0.45 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, color: CLR.text, fontWeight: 500, display: "flex", alignItems: "center", gap: 6 }}>
+                      {fmtDay(date)}
+                      {isToday && !hasEOD && (
+                        <span style={{ fontSize: 10, color: CLR.amber, background: CLR.border, padding: "1px 5px", borderRadius: 4 }}>
+                          {lang === "he" ? "עד כה" : "so far"}
+                        </span>
+                      )}
+                    </div>
                     <div style={{ fontSize: 11, color: CLR.muted, marginTop: 2 }}>
                       {Math.round(d.protein)}g prot · {Math.round(d.carbs)}g carbs · {Math.round(d.fat)}g fat
                     </div>
                   </div>
-                  <div style={{ textAlign: "right", flexShrink: 0 }}>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: net > effectiveCal ? CLR.red : CLR.green }}>
-                      {net > 0 ? "+" : ""}{net}
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ fontSize: 15, fontWeight: 700, color: net > effectiveCal ? CLR.red : CLR.green }}>
+                        {net > 0 ? "+" : ""}{net}
+                      </div>
+                      <div style={{ fontSize: 10, color: CLR.dim }}>{t.netKcal}</div>
                     </div>
-                    <div style={{ fontSize: 10, color: CLR.dim }}>{t.netKcal}</div>
+                    <div
+                      onClick={() => toggleDay(date)}
+                      style={{
+                        width: 32, height: 18, borderRadius: 9,
+                        background: active ? CLR.purple : CLR.border,
+                        position: "relative", cursor: "pointer", flexShrink: 0,
+                        transition: "background 0.15s",
+                      }}
+                    >
+                      <div style={{
+                        position: "absolute",
+                        width: 14, height: 14, borderRadius: 7,
+                        background: "white",
+                        top: 2, left: active ? 16 : 2,
+                        transition: "left 0.15s",
+                      }} />
+                    </div>
                   </div>
                 </div>
               );
