@@ -217,13 +217,14 @@ export function DashboardTab({t,appData,entries,setEntries,onEOD,deleteEntry}){
   const breakCal=Math.round(goals.targetCal+(appData.goals.deficit||0)*1.5);
   const effectiveCal=isBreakWeek?breakCal:goals.targetCal;
   const workoutTarget=isBreakWeek?Math.floor((appData.goals.workoutsPerWeek||0)/2):(appData.goals.workoutsPerWeek||0);
+  const scale=effectiveCal>0?(effectiveCal+tots.burned)/effectiveCal:1;
   const rings=[
-    {label:t.calories,value:net,max:effectiveCal,color:CLR.purple,unit:""},
-    {label:t.protein,value:tots.protein,max:goals.protein,color:CLR.green,unit:"g"},
-    {label:t.carbs,value:tots.carbs,max:goals.carbs,color:CLR.amber,unit:"g"},
-    {label:t.fat,value:tots.fat,max:goals.fat,color:CLR.red,unit:"g"},
-    {label:t.fiber,value:tots.fiber,max:goals.fiber,color:CLR.teal,unit:"g"},
-    {label:t.water,value:tots.water,max:goals.water,color:CLR.blue,unit:"L"},
+    {label:t.calories,value:net,max:effectiveCal,color:CLR.purple,unit:"",direction:"under"},
+    {label:t.protein,value:tots.protein,max:Math.round(goals.protein*scale),color:CLR.green,unit:"g",direction:"over"},
+    {label:t.carbs,value:tots.carbs,max:Math.round(goals.carbs*scale),color:CLR.amber,unit:"g",direction:"under"},
+    {label:t.fat,value:tots.fat,max:Math.round(goals.fat*scale),color:CLR.red,unit:"g",direction:"under"},
+    {label:t.fiber,value:tots.fiber,max:Math.round(goals.fiber*scale),color:CLR.teal,unit:"g",direction:"over"},
+    {label:t.water,value:tots.water,max:Math.round(goals.water*scale*10)/10,color:CLR.blue,unit:"L",direction:"over"},
   ];
   const typeIcon={food:"🍽",activity:"🏃",eod:"🌙",body:"⚖️"};
   return(

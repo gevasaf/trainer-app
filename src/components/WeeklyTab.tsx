@@ -52,13 +52,14 @@ export function WeeklyTab({t, appData, entries, lang}) {
       .map(e => e.date)
   )].length;
 
+  const avgScale = effectiveCal > 0 ? (effectiveCal + avgBurned) / effectiveCal : 1;
   const rings = [
-    { label: t.calories, value: avgNet,          max: effectiveCal,  color: CLR.purple, unit: ""  },
-    { label: t.protein,  value: avgOf("protein"), max: goals.protein, color: CLR.green,  unit: "g" },
-    { label: t.carbs,    value: avgOf("carbs"),   max: goals.carbs,   color: CLR.amber,  unit: "g" },
-    { label: t.fat,      value: avgOf("fat"),     max: goals.fat,     color: CLR.red,    unit: "g" },
-    { label: t.fiber,    value: avgOf("fiber"),   max: goals.fiber,   color: CLR.teal,   unit: "g" },
-    { label: t.water,    value: avgOf("water"),   max: goals.water,   color: CLR.blue,   unit: "L" },
+    { label: t.calories, value: avgNet,          max: effectiveCal,                          color: CLR.purple, unit: "",  direction: "under" },
+    { label: t.protein,  value: avgOf("protein"), max: Math.round(goals.protein * avgScale),  color: CLR.green,  unit: "g", direction: "over"  },
+    { label: t.carbs,    value: avgOf("carbs"),   max: Math.round(goals.carbs * avgScale),    color: CLR.amber,  unit: "g", direction: "under" },
+    { label: t.fat,      value: avgOf("fat"),     max: Math.round(goals.fat * avgScale),      color: CLR.red,    unit: "g", direction: "under" },
+    { label: t.fiber,    value: avgOf("fiber"),   max: Math.round(goals.fiber * avgScale),    color: CLR.teal,   unit: "g", direction: "over"  },
+    { label: t.water,    value: avgOf("water"),   max: Math.round(goals.water * avgScale * 10) / 10, color: CLR.blue, unit: "L", direction: "over" },
   ];
 
   const locale = lang === "he" ? "he-IL" : "en-US";

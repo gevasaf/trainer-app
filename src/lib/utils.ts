@@ -107,13 +107,22 @@ export function buildEODContext(entries, dateKey, goals, isNewWeek, allEntries, 
   const isBreakWk = currentWeek!=null && (goals.breakWeeks||[]).includes(currentWeek);
   const effectiveWorkoutGoal = isBreakWk ? Math.floor((goals.workoutsPerWeek||0)/2) : (goals.workoutsPerWeek||0);
   const effectiveCal = isBreakWk ? Math.round(g.targetCal + (goals.deficit||0)*1.5) : g.targetCal;
+  const scale = effectiveCal > 0 ? (effectiveCal + dt.burned) / effectiveCal : 1;
+  const sg = {
+    protein: Math.round(g.protein * scale),
+    carbs:   Math.round(g.carbs   * scale),
+    fat:     Math.round(g.fat     * scale),
+    fiber:   Math.round(g.fiber   * scale),
+    water:   Math.round(g.water   * scale * 10) / 10,
+  };
   const todayActivities = entries.filter(e => e.type === "activity" && e.date === dateKey);
   const activityLine = todayActivities.length
     ? "\nToday's activities: " + todayActivities.map(e =>
         `${e.label||"activity"}${e.duration_min?` ${e.duration_min}min`:""}${e.calories_burned?`, ${Math.round(e.calories_burned)}kcal burned`:""} [${e.countsTowardGoal===false?"NOT counted toward goal":"counts toward goal"}]`
       ).join(" | ")
     : "";
-  let text = `[END OF DAY: ${dateKey}]${isBreakWk?" [BREAK WEEK "+currentWeek+"]":""}${isAuto?"":" [USER COMMITTED — they chose to close their day and will not eat again tonight]"}\nNet calories: ${netCal} / ${effectiveCal} kcal | Eaten: ${Math.round(dt.cal)} kcal | Burned: ${Math.round(dt.burned)} kcal | Protein: ${Math.round(dt.protein)}g / ${g.protein}g | Carbs: ${Math.round(dt.carbs)}g / ${g.carbs}g | Fat: ${Math.round(dt.fat)}g / ${g.fat}g | Fiber: ${Math.round(dt.fiber)}g / ${g.fiber}g | Water: ${round1(dt.water)}L / ${g.water}L | Workouts this week: ${weekWorkouts} / ${effectiveWorkoutGoal}${activityLine}`;
+  const scaleNote = scale > 1 ? ` [macro targets scaled ×${round1(scale)} for activity]` : "";
+  let text = `[END OF DAY: ${dateKey}]${isBreakWk?" [BREAK WEEK "+currentWeek+"]":""}${isAuto?"":" [USER COMMITTED — they chose to close their day and will not eat again tonight]"}${scaleNote}\nNet calories: ${netCal} / ${effectiveCal} kcal | Eaten: ${Math.round(dt.cal)} kcal | Burned: ${Math.round(dt.burned)} kcal | Protein: ${Math.round(dt.protein)}g / ${sg.protein}g (min) | Carbs: ${Math.round(dt.carbs)}g / ${sg.carbs}g (max) | Fat: ${Math.round(dt.fat)}g / ${sg.fat}g (max) | Fiber: ${Math.round(dt.fiber)}g / ${sg.fiber}g (min) | Water: ${round1(dt.water)}L / ${sg.water}L (min) | Workouts this week: ${weekWorkouts} / ${effectiveWorkoutGoal}${activityLine}`;
   if (isNewWeek) {
     const ws = weekStart(dateKey);
     const days = [...new Set(allEntries.filter(e=>weekStart(e.date)===ws&&e.date<=dateKey).map(e=>e.date))].sort();
@@ -121,7 +130,16 @@ export function buildEODContext(entries, dateKey, goals, isNewWeek, allEntries, 
       const tots = days.map(d=>({date:d,...dayTotals(allEntries,d)}));
       const avg = (key) => round1(tots.reduce((s,d)=>s+(d[key]||0),0)/tots.length);
       const avgNet = round1(tots.reduce((s,d)=>s+(d.cal-d.burned),0)/tots.length);
-      text += `\n\n[WEEK SUMMARY: week of ${ws} — ${days.length} logged days]\nAvg net calories: ${avgNet} kcal (goal ${g.targetCal}) | Avg eaten: ${avg("cal")} kcal | Avg burned: ${avg("burned")} kcal | Avg protein: ${avg("protein")}g | Avg carbs: ${avg("carbs")}g | Avg fat: ${avg("fat")}g | Avg fiber: ${avg("fiber")}g | Avg water: ${avg("water")}L`;
+      const avgBurned = avg("burned");
+      const wkScale = effectiveCal > 0 ? (effectiveCal + avgBurned) / effectiveCal : 1;
+      const wsg = {
+        protein: Math.round(g.protein * wkScale),
+        carbs:   Math.round(g.carbs   * wkScale),
+        fat:     Math.round(g.fat     * wkScale),
+        fiber:   Math.round(g.fiber   * wkScale),
+        water:   Math.round(g.water   * wkScale * 10) / 10,
+      };
+      text += `\n\n[WEEK SUMMARY: week of ${ws} — ${days.length} logged days]\nAvg net calories: ${avgNet} kcal (goal ${effectiveCal}) | Avg eaten: ${avg("cal")} kcal | Avg burned: ${avgBurned} kcal | Avg protein: ${avg("protein")}g / ${wsg.protein}g (min) | Avg carbs: ${avg("carbs")}g / ${wsg.carbs}g (max) | Avg fat: ${avg("fat")}g / ${wsg.fat}g (max) | Avg fiber: ${avg("fiber")}g / ${wsg.fiber}g (min) | Avg water: ${avg("water")}L / ${wsg.water}L (min)`;
     }
   }
   return text;
