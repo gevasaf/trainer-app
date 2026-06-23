@@ -35,8 +35,8 @@ export function InfoTip({text,below=false}){
   );
 }
 
-export function Ring({value,max,color,label,unit,size=68}){
-  const pct=Math.min(1,max>0?value/max:0),over=value>max&&max>0;
+export function Ring({value,max,color,label,unit,size=68,direction="under"}){
+  const pct=Math.min(1,max>0?value/max:0),over=direction==="under"&&value>max&&max>0;
   const r=26,cx=size/2,cy=size/2,circ=2*Math.PI*r;
   return(
     <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>

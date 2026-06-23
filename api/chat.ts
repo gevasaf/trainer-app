@@ -43,9 +43,11 @@ Break weeks: ${goals.breakWeeks?.length ? goals.breakWeeks.join(', ') : 'none'} 
 Break week rules: ~+${Math.round((goals.deficit ?? 0) / 2)} kcal/day surplus (target ${breakCal} kcal) | ${breakWorkouts} workout(s)/week
 Target weight: ${goals.targetWeight}kg | Target waist: ${goals.targetWaist}cm | Target fat%: ${goals.targetFat || 'n/a'}%
 ${isBreakWeek ? `\n⚠️ Currently in break week ${currentWeek}. The user should still log food and activity normally.` : ''}
-## Daily targets
-Calories: ${isBreakWeek ? breakCal : n.targetCal} kcal | Protein: ${n.protein}g | Carbs: ${n.carbs}g | Fat: ${n.fat}g | Fiber: ${n.fiber}g | Water: ${n.water}L
+## Daily targets (baseline, at rest)
+Calories: ${isBreakWeek ? breakCal : n.targetCal} kcal NET | Protein: ${n.protein}g | Carbs: ${n.carbs}g | Fat: ${n.fat}g | Fiber: ${n.fiber}g | Water: ${n.water}L
 ${isBreakWeek ? `Calorie surplus: +${Math.round((goals.deficit ?? 0) / 2)} kcal/day vs TDEE (break week recovery)` : `Calorie deficit: ${goals.deficit} kcal/day vs TDEE`}
+Macro target directions: Calories = NET (consumed − burned vs NET goal). Protein/fiber/water = minimums (reaching or exceeding is good). Carbs/fat = maximums (staying at or under is good).
+Activity scaling: On days with logged exercise, all macro gram targets scale proportionally with gross calorie intake. E.g. burning 500 kcal on a 2000 kcal net day means a 25% increase in all macro targets — because extra intake must come from somewhere. End-of-day summaries show the actual scaled targets for that day.
 
 ## Instructions
 - You have a query_log tool. Use it ONLY when the user asks about specific foods, activities, or patterns over time that you cannot answer from conversation history.
