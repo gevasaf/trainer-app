@@ -95,14 +95,16 @@ export async function getJourneys(): Promise<any[]> {
   return w.journeys || []
 }
 
-// Archives the current journey and clears the active timeline in one write.
-// The archive is embedded in app_data, so it survives the reset with no extra
-// column. Throws on failure so the caller can report it (data stays intact).
-export async function archiveCurrentJourney(journey: unknown): Promise<void> {
+// Archives the current journey AND installs a freshly-set-up journey as the
+// active one, in a single write: the old journey is appended to the archive
+// (embedded in app_data), the new setup becomes active, and the active log
+// columns are emptied for the fresh start. Throws on failure so the caller can
+// report it — nothing is changed unless the write succeeds.
+export async function archiveAndStart(journey: unknown, newActive: unknown): Promise<void> {
   const w = await readAppWrapper()
   const journeys = [...(w.journeys || []), journey]
   await writeAppWrapper(
-    { active: null, journeys },
+    { active: newActive, journeys },
     { entries: [], body_points: [], chat_history: [] },
   )
 }
