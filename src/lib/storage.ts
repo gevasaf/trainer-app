@@ -6,7 +6,6 @@ const COL: Record<string, string> = {
   entries:     'entries',
   bodyPoints:  'body_points',
   chatHistory: 'chat_history',
-  journeys:    'journeys',
   lang:        'lang',
 }
 
@@ -16,10 +15,68 @@ export function initStorage(id: string) {
   userId = id
 }
 
+// ---------------------------------------------------------------------------
+// Journeys live INSIDE the existing `app_data` column (no schema change / no
+// migration needed). The column holds one of two shapes:
+//
+//   • Legacy  →  the active journey's appData object directly, e.g. {profile,…}
+//   • Wrapped →  { __v: 2, active: <appData|null>, journeys: [ …archived… ] }
+//
+// A row that has never started a second journey stays in the legacy shape and
+// reads back as "active = that appData, journeys = []". The wrapper only
+// appears once the user starts their first new journey.
+// ---------------------------------------------------------------------------
+
+type AppWrapper = { active: any; journeys: any[] }
+
+function unwrapAppData(raw: any): AppWrapper {
+  if (raw && typeof raw === 'object' && !Array.isArray(raw) && raw.__v === 2) {
+    return { active: raw.active ?? null, journeys: Array.isArray(raw.journeys) ? raw.journeys : [] }
+  }
+  // Legacy row (bare appData) or null → treat as the active journey, no history
+  return { active: raw ?? null, journeys: [] }
+}
+
+async function readAppWrapper(): Promise<AppWrapper> {
+  if (!userId) return { active: null, journeys: [] }
+  const { data, error } = await supabase
+    .from('user_data')
+    .select('app_data')
+    .eq('user_id', userId)
+    .maybeSingle()
+  if (error || !data) return { active: null, journeys: [] }
+  return unwrapAppData((data as any).app_data)
+}
+
+// Writes the app_data column as the wrapper, optionally clearing the active
+// log columns in the same upsert (used when starting a fresh journey).
+async function writeAppWrapper(wrapper: AppWrapper, extra: Record<string, unknown> = {}): Promise<void> {
+  if (!userId) throw new Error('Not signed in')
+  const { error } = await supabase
+    .from('user_data')
+    .upsert(
+      {
+        user_id: userId,
+        app_data: { __v: 2, active: wrapper.active ?? null, journeys: wrapper.journeys || [] },
+        updated_at: new Date().toISOString(),
+        ...extra,
+      },
+      { onConflict: 'user_id' },
+    )
+  if (error) throw error
+}
+
 export async function storageGet(key: string): Promise<{ value: string } | null> {
   if (!userId) return null
-  const col = COL[key] ?? key
 
+  // appData is unwrapped from the container so callers see only the active journey
+  if (key === 'appData') {
+    const w = await readAppWrapper()
+    if (w.active == null) return null
+    return { value: JSON.stringify(w.active) }
+  }
+
+  const col = COL[key] ?? key
   const { data, error } = await supabase
     .from('user_data')
     .select(col)
@@ -32,70 +89,42 @@ export async function storageGet(key: string): Promise<{ value: string } | null>
   return { value: typeof val === 'string' ? val : JSON.stringify(val) }
 }
 
-// Reads the archived journeys array (empty if none / column missing).
+// Reads the archived journeys array (empty if none).
 export async function getJourneys(): Promise<any[]> {
-  const r = await storageGet('journeys')
-  if (!r?.value) return []
-  try {
-    const v = JSON.parse(r.value)
-    return Array.isArray(v) ? v : []
-  } catch {
-    return []
-  }
+  const w = await readAppWrapper()
+  return w.journeys || []
 }
 
-// Appends one journey to the archive. Throws on failure so callers can
-// abort before clearing the active data (avoids losing data if the
-// `journeys` column hasn't been migrated yet).
-export async function appendJourney(journey: unknown): Promise<void> {
-  if (!userId) throw new Error('Not signed in')
-
-  const { data, error } = await supabase
-    .from('user_data')
-    .select('journeys')
-    .eq('user_id', userId)
-    .maybeSingle()
-  if (error) throw error
-
-  const list = Array.isArray((data as any)?.journeys) ? (data as any).journeys : []
-  const next = [...list, journey]
-
-  const { error: upErr } = await supabase
-    .from('user_data')
-    .upsert(
-      { user_id: userId, journeys: next, updated_at: new Date().toISOString() },
-      { onConflict: 'user_id' },
-    )
-  if (upErr) throw upErr
+// Archives the current journey and clears the active timeline in one write.
+// The archive is embedded in app_data, so it survives the reset with no extra
+// column. Throws on failure so the caller can report it (data stays intact).
+export async function archiveCurrentJourney(journey: unknown): Promise<void> {
+  const w = await readAppWrapper()
+  const journeys = [...(w.journeys || []), journey]
+  await writeAppWrapper(
+    { active: null, journeys },
+    { entries: [], body_points: [], chat_history: [] },
+  )
 }
 
 // Persists the full journeys array (used when deleting an archived journey).
 export async function saveJourneys(list: unknown[]): Promise<void> {
-  await storageSet('journeys', JSON.stringify(list))
-}
-
-// Clears the active timeline (program + logs + measurements + chat) while
-// keeping the archived journeys and language. Used when starting fresh.
-export async function resetActiveData(): Promise<void> {
-  if (!userId) return
-  const { error } = await supabase
-    .from('user_data')
-    .upsert(
-      {
-        user_id: userId,
-        app_data: null,
-        entries: [],
-        body_points: [],
-        chat_history: [],
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'user_id' },
-    )
-  if (error) throw error
+  const w = await readAppWrapper()
+  await writeAppWrapper({ active: w.active, journeys: list })
 }
 
 export async function storageSet(key: string, value: string): Promise<void> {
   if (!userId) return
+
+  // appData must preserve the embedded journeys archive on every write
+  if (key === 'appData') {
+    const w = await readAppWrapper()
+    let active: any
+    try { active = JSON.parse(value) } catch { active = null }
+    await writeAppWrapper({ active, journeys: w.journeys })
+    return
+  }
+
   const col = COL[key] ?? key
 
   // lang is stored as plain text; everything else as JSONB

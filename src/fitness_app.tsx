@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { CLR } from "./lib/utils";
 import { T } from "./i18n";
-import { storageGet, storageSet, getJourneys, appendJourney, resetActiveData, saveJourneys } from "./lib/storage";
+import { storageGet, storageSet, getJourneys, archiveCurrentJourney, saveJourneys } from "./lib/storage";
 import { supabase } from "./lib/supabase";
 import { SetupFlow } from "./components/SetupFlow";
 import { MainApp } from "./components/MainApp";
@@ -41,10 +41,9 @@ export default function FitnessApp(){
       chatHistory:current.chatHistory||[],
     };
     try{
-      await appendJourney(journey);   // must persist before we clear active data
-      await resetActiveData();
+      await archiveCurrentJourney(journey);   // archives + clears active data in one write
     }catch(e){
-      alert("Couldn't start a new journey — your data was not changed.\n\nIf this keeps happening, the 'journeys' column may need to be added in Supabase (see supabase-schema.sql).");
+      alert("Couldn't start a new journey — your data was not changed. Please check your connection and try again.");
       return;
     }
     setJourneys(prev=>[...prev,journey]);
