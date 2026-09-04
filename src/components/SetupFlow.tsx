@@ -6,7 +6,7 @@ import { TimelineChart } from "./TimelineChart";
 
 declare const __APP_VERSION__: string;
 
-export function SetupFlow({onComplete,t,lang,toggleLang}){
+export function SetupFlow({onComplete,onCancel,newJourney=false,t,lang,toggleLang}){
   const [step,setStep]=useState(1);
   const [p,setP]=useState({name:"",age:30,gender:"male",height:175,weight:80,waist:85,actIdx:2});
   const act=t.actLevels[p.actIdx];
@@ -39,10 +39,14 @@ export function SetupFlow({onComplete,t,lang,toggleLang}){
       {/* Fixed header */}
       <div style={{width:"100%",maxWidth:540,flexShrink:0,padding:"24px 16px 0"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-          <div><div style={{fontSize:22,fontWeight:700,color:CLR.purple}}>{"💪 "+t.setup}</div>
+          <div><div style={{fontSize:22,fontWeight:700,color:CLR.purple}}>{(newJourney?"✨ "+t.newJourney:"💪 "+t.setup)}</div>
             <div style={{fontSize:12,color:CLR.muted,marginTop:2,display:"flex",gap:6,alignItems:"center"}}><span>{"Step "+step+" of 2"}</span><span style={{opacity:0.4}}>·</span><span style={{opacity:0.5}}>{"v"+__APP_VERSION__}</span></div></div>
-          <button onClick={toggleLang} style={{background:CLR.card,border:"1px solid "+CLR.border,color:CLR.muted,borderRadius:8,padding:"6px 14px",cursor:"pointer",fontSize:13}}>{lang==="en"?"עב":"EN"}</button>
+          <div style={{display:"flex",gap:8,alignItems:"center"}}>
+            {onCancel&&<button onClick={onCancel} style={{background:CLR.card,border:"1px solid "+CLR.border,color:CLR.muted,borderRadius:8,padding:"6px 14px",cursor:"pointer",fontSize:13}}>{t.cancel}</button>}
+            <button onClick={toggleLang} style={{background:CLR.card,border:"1px solid "+CLR.border,color:CLR.muted,borderRadius:8,padding:"6px 14px",cursor:"pointer",fontSize:13}}>{lang==="en"?"עב":"EN"}</button>
+          </div>
         </div>
+        {newJourney&&<div style={{background:CLR.card,border:"1px solid "+CLR.border,borderRadius:10,padding:"10px 12px",marginBottom:14,fontSize:12,color:CLR.muted,lineHeight:1.5}}>{t.newJourneyMsg}</div>}
         <div style={{display:"flex",gap:8,marginBottom:16}}>
           {[1,2].map(s=><div key={s} style={{flex:1,height:4,borderRadius:4,background:step>=s?CLR.purple:CLR.border}}/>)}
         </div>
