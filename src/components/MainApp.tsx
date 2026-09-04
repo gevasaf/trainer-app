@@ -1,7 +1,7 @@
 // @ts-nocheck
 import React, { useState, useRef, useEffect } from "react";
 import { CLR, todayKey, weekStart, dayTotals, round1, buildEODContext, buildMeasurementContext } from "../lib/utils";
-import { storageGet, storageSet, clearUserData } from "../lib/storage";
+import { storageGet, storageSet } from "../lib/storage";
 import { callAssistant } from "../lib/api";
 import { ConfirmModal } from "./ui";
 import { DashboardTab } from "./DashboardTab";
@@ -9,17 +9,11 @@ import { WeeklyTab } from "./WeeklyTab";
 import { TimelineTab } from "./TimelineTab";
 import { AssistantTab } from "./AssistantTab";
 import { LogTab } from "./LogTab";
+import { JourneysModal } from "./JourneysModal";
 
 declare const __APP_VERSION__: string;
 
-function MenuDropdown({t,lang,toggleLang,onDeleteData,onLogout,onClose}){
-  const [confirmDelete,setConfirmDelete]=useState(false);
-  if(confirmDelete) return(
-    <ConfirmModal
-      title={t.deleteDataTitle} message={t.deleteDataMsg}
-      confirmText={t.deleteDataConfirm} danger
-      onConfirm={onDeleteData} onCancel={()=>setConfirmDelete(false)}/>
-  );
+function MenuDropdown({t,lang,toggleLang,onNewJourney,onPastJourneys,journeysCount,onLogout,onClose}){
   const row=(label,right,onClick,red=false)=>(
     <button onClick={onClick} style={{display:"flex",justifyContent:"space-between",alignItems:"center",width:"100%",background:"none",border:"none",borderTop:"1px solid "+CLR.border,padding:"12px 16px",cursor:"pointer",color:red?CLR.red:CLR.text,fontSize:14,gap:16}}>
       <span>{label}</span><span style={{color:red?CLR.red:CLR.muted,fontSize:13,whiteSpace:"nowrap"}}>{right}</span>
@@ -28,16 +22,17 @@ function MenuDropdown({t,lang,toggleLang,onDeleteData,onLogout,onClose}){
   return(
     <>
       <div onClick={onClose} style={{position:"fixed",inset:0,zIndex:299}}/>
-      <div style={{position:"absolute",top:"calc(100% + 6px)",...side,zIndex:300,background:CLR.card,borderRadius:12,border:"1px solid "+CLR.border,minWidth:220,boxShadow:"0 8px 24px rgba(0,0,0,0.4)",overflow:"hidden"}}>
+      <div style={{position:"absolute",top:"calc(100% + 6px)",...side,zIndex:300,background:CLR.card,borderRadius:12,border:"1px solid "+CLR.border,minWidth:240,boxShadow:"0 8px 24px rgba(0,0,0,0.4)",overflow:"hidden"}}>
         {row(t.language, lang==="en"?"🇮🇱 עברית":"🇺🇸 English", toggleLang)}
+        {row("🗂 "+t.pastJourneys, journeysCount>0?String(journeysCount):"→", onPastJourneys)}
+        {row("✨ "+t.newJourney, "→", onNewJourney)}
         {row("🚪 "+t.logout, "→", onLogout)}
-        {row("⚠️ "+t.deleteData, "→", ()=>setConfirmDelete(true), true)}
       </div>
     </>
   );
 }
 
-export function MainApp({data,t,lang,toggleLang,onReset,onLogout,greetOnMount}){
+export function MainApp({data,t,lang,toggleLang,onLogout,greetOnMount,journeys,onStartNewJourney,onViewJourney,onDeleteJourney}){
   const [tab,setTab]=useState(0);
   const [entries,setEntries]=useState([]);
   const [bodyPoints,setBodyPoints]=useState([]);
@@ -45,12 +40,15 @@ export function MainApp({data,t,lang,toggleLang,onReset,onLogout,greetOnMount}){
   const [unreadCount,setUnreadCount]=useState(0);
   const [storeReady,setStoreReady]=useState(false);
   const [menuOpen,setMenuOpen]=useState(false);
+  const [journeysOpen,setJourneysOpen]=useState(false);
+  const [confirmNewJourney,setConfirmNewJourney]=useState(false);
   const [assistantStatus,setAssistantStatus]=useState(null);
   const lastEODCheck=useRef(null);
 
-  async function handleDeleteData(){
-    await clearUserData();
-    onReset();
+  function startNewJourney(){
+    setConfirmNewJourney(false);
+    setMenuOpen(false);
+    onStartNewJourney({appData:data,entries,bodyPoints,chatHistory});
   }
 
   useEffect(()=>{
@@ -140,12 +138,15 @@ export function MainApp({data,t,lang,toggleLang,onReset,onLogout,greetOnMount}){
 
   return(
     <div style={{height:"100dvh",background:CLR.bg,color:CLR.text,fontFamily:"system-ui,sans-serif",direction:t.dir,display:"flex",flexDirection:"column",alignItems:"center",overflow:"hidden"}}>
+      {confirmNewJourney&&<ConfirmModal title={t.newJourneyTitle} message={t.newJourneyMsg} confirmText={t.newJourneyConfirm} onConfirm={startNewJourney} onCancel={()=>setConfirmNewJourney(false)}/>}
+      {journeysOpen&&<JourneysModal t={t} lang={lang} journeys={journeys||[]} onView={j=>{setJourneysOpen(false);onViewJourney(j);}} onDelete={id=>onDeleteJourney(id)} onClose={()=>setJourneysOpen(false)}/>}
+
       {/* Header */}
       <div style={{width:"100%",maxWidth:680,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 16px 0"}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <div style={{position:"relative"}}>
             <button onClick={()=>setMenuOpen(o=>!o)} style={{background:menuOpen?CLR.purple:"none",border:"1px solid "+(menuOpen?CLR.purple:CLR.border),color:menuOpen?"#fff":CLR.muted,borderRadius:8,padding:"4px 10px",cursor:"pointer",fontSize:16,lineHeight:1.4,flexShrink:0}}>☰</button>
-            {menuOpen&&<MenuDropdown t={t} lang={lang} toggleLang={()=>{toggleLang();setMenuOpen(false);}} onDeleteData={handleDeleteData} onLogout={onLogout} onClose={()=>setMenuOpen(false)}/>}
+            {menuOpen&&<MenuDropdown t={t} lang={lang} toggleLang={()=>{toggleLang();setMenuOpen(false);}} journeysCount={(journeys||[]).length} onPastJourneys={()=>{setJourneysOpen(true);setMenuOpen(false);}} onNewJourney={()=>{setConfirmNewJourney(true);setMenuOpen(false);}} onLogout={onLogout} onClose={()=>setMenuOpen(false)}/>}
           </div>
           <div>
             <div style={{fontSize:18,fontWeight:700}}>{"👋 "+data.profile.name}</div>

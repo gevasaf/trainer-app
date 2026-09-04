@@ -35,7 +35,7 @@ function deriveFat(p, profile){
   return p.fat??null;
 }
 
-export function TimelineTab({t,appData,bodyPoints,setBodyPoints,onMeasurement,lang,deleteBodyPoint}){
+export function TimelineTab({t,appData,bodyPoints,setBodyPoints,onMeasurement,lang,deleteBodyPoint,readOnly=false}){
   const [showModal,setShowModal]=useState(false);
   const [pendingDelete,setPendingDelete]=useState(null);
   const goals=appData.goals;
@@ -74,7 +74,7 @@ export function TimelineTab({t,appData,bodyPoints,setBodyPoints,onMeasurement,la
               {u&&<div style={{fontSize:10,color:CLR.dim}}>{u}</div>}
             </div>))}
         </div>
-        <Btn onClick={()=>setShowModal(true)} style={{width:"100%",marginBottom:10}}>⚖️ {t.recordWeight}</Btn>
+        {!readOnly&&<Btn onClick={()=>setShowModal(true)} style={{width:"100%",marginBottom:10}}>⚖️ {t.recordWeight}</Btn>}
       </div>
 
       {/* Scrollable history */}
@@ -87,7 +87,7 @@ export function TimelineTab({t,appData,bodyPoints,setBodyPoints,onMeasurement,la
                 {p.weight&&<span style={{color:CLR.purple}}>{p.weight} kg</span>}
                 {p.waist&&<span style={{color:CLR.teal}}>{p.waist} cm</span>}
                 {p.fat!=null&&<span style={{color:CLR.amber}}>{Number(p.fat).toFixed(1)}%</span>}
-                {!p.isBaseline&&(pendingDelete===p.ts
+                {!readOnly&&!p.isBaseline&&(pendingDelete===p.ts
                   ?<><button onClick={()=>setPendingDelete(null)} style={{background:"none",border:"1px solid "+CLR.border,color:CLR.muted,cursor:"pointer",fontSize:11,padding:"2px 7px",borderRadius:6,lineHeight:1.5}}>Cancel</button>
                     <button onClick={()=>{deleteBodyPoint(p.ts);setPendingDelete(null);}} style={{background:CLR.red,border:"none",color:"#fff",cursor:"pointer",fontSize:11,padding:"2px 7px",borderRadius:6,lineHeight:1.5}}>Delete</button></>
                   :<button onClick={()=>setPendingDelete(p.ts)} style={{background:"none",border:"none",color:CLR.dim,cursor:"pointer",fontSize:14,padding:"2px 4px",lineHeight:1,opacity:0.6}} title="Delete measurement">🗑</button>)}

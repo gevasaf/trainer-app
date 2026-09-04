@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { CLR, calcFatPct } from "../lib/utils";
 import { Card, inp } from "./ui";
 
-export function LogTab({t,entries,bodyPoints,profile,deleteEntry,deleteBodyPoint}){
+export function LogTab({t,entries,bodyPoints,profile,deleteEntry,deleteBodyPoint,readOnly=false}){
   const [filterType,setFilterType]=useState("all"),[fromDate,setFromDate]=useState(""),[toDate,setToDate]=useState("");
   const [pendingDelete,setPendingDelete]=useState(null);
   const typeIcon={food:"🍽",activity:"🏃",eod:"🌙",body:"⚖️"};
@@ -49,12 +49,12 @@ export function LogTab({t,entries,bodyPoints,profile,deleteEntry,deleteBodyPoint
             </div>
             <div style={{display:"flex",alignItems:"flex-start",gap:6,flexShrink:0}}>
               <div style={{fontSize:11,color:CLR.dim,textAlign:"right"}}><div>{e.date}</div><div style={{color:typeColor[e.type]||CLR.dim}}>{e.type}</div></div>
-              {pendingDelete===e.ts
+              {!readOnly&&(pendingDelete===e.ts
                 ?<div style={{display:"flex",gap:4,alignItems:"center"}}>
                     <button onClick={()=>setPendingDelete(null)} style={{background:"none",border:"1px solid "+CLR.border,color:CLR.muted,cursor:"pointer",fontSize:11,padding:"2px 7px",borderRadius:6,lineHeight:1.5}}>Cancel</button>
                     <button onClick={()=>{e.type==="body"?deleteBodyPoint(e.ts):deleteEntry(e.ts);setPendingDelete(null);}} style={{background:CLR.red,border:"none",color:"#fff",cursor:"pointer",fontSize:11,padding:"2px 7px",borderRadius:6,lineHeight:1.5}}>Delete</button>
                   </div>
-                :<button onClick={()=>setPendingDelete(e.ts)} style={{background:"none",border:"none",color:CLR.dim,cursor:"pointer",fontSize:14,padding:"2px 4px",lineHeight:1,opacity:0.6,marginTop:1}} title="Delete entry">🗑</button>}
+                :<button onClick={()=>setPendingDelete(e.ts)} style={{background:"none",border:"none",color:CLR.dim,cursor:"pointer",fontSize:14,padding:"2px 4px",lineHeight:1,opacity:0.6,marginTop:1}} title="Delete entry">🗑</button>)}
             </div>
           </div>))}
       </div>

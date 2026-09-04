@@ -8,9 +8,14 @@ create table if not exists user_data (
   entries  jsonb default '[]'::jsonb,
   body_points jsonb default '[]'::jsonb,
   chat_history jsonb default '[]'::jsonb,
+  journeys jsonb default '[]'::jsonb,
   lang     text default 'en',
   updated_at timestamptz default now()
 );
+
+-- Backwards-compatible migration for existing installs: add the journeys
+-- column if the table already exists without it. Safe to run repeatedly.
+alter table user_data add column if not exists journeys jsonb default '[]'::jsonb;
 
 alter table user_data enable row level security;
 

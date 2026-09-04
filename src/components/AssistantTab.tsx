@@ -84,7 +84,7 @@ const ChatMessage = memo(function ChatMessage({msg, appData, t}) {
   );
 });
 
-export function AssistantTab({t,appData,entries,bodyPoints,chatHistory,setChatHistory,setUnreadCount,lang,status,setStatus}){
+export function AssistantTab({t,appData,entries,bodyPoints,chatHistory,setChatHistory,setUnreadCount,lang,status,setStatus,readOnly=false}){
   const [input,setInput]=useState("");
   const bottomRef=useRef(null);
   const textareaRef=useRef(null);
@@ -128,6 +128,9 @@ export function AssistantTab({t,appData,entries,bodyPoints,chatHistory,setChatHi
     <div style={{height:"100%",display:"flex",flexDirection:"column",overflow:"hidden"}}>
       {/* Scrollable messages */}
       <div style={{flex:1,overflowY:"auto",padding:"12px 16px 8px"}}>
+        {readOnly&&chatHistory.length===0&&(
+          <div style={{textAlign:"center",color:CLR.dim,fontSize:13,padding:"40px 0"}}>{t.noLogs}</div>
+        )}
         {chatHistory.map((msg,i)=>(
           <ChatMessage key={msg.ts??i} msg={msg} appData={appData} t={t}/>
         ))}
@@ -139,8 +142,8 @@ export function AssistantTab({t,appData,entries,bodyPoints,chatHistory,setChatHi
         <div ref={bottomRef}/>
       </div>
 
-      {/* Fixed bottom: input */}
-      <div style={{flexShrink:0,padding:"8px 16px 16px",borderTop:"1px solid "+CLR.border}}>
+      {/* Fixed bottom: input (hidden in read-only journey view) */}
+      {!readOnly&&<div style={{flexShrink:0,padding:"8px 16px 16px",borderTop:"1px solid "+CLR.border}}>
         <div style={{display:"flex",gap:8,alignItems:"flex-end"}}>
           <textarea ref={textareaRef} value={input} onChange={handleInputChange} onKeyDown={handleKeyDown}
             placeholder={t.typeMsg} rows={1}
@@ -148,7 +151,7 @@ export function AssistantTab({t,appData,entries,bodyPoints,chatHistory,setChatHi
           <Btn onClick={send} disabled={!input.trim()||!!status} style={{padding:"10px 18px",flexShrink:0}}>{t.send}</Btn>
         </div>
         <div style={{fontSize:11,color:CLR.dim,marginTop:4,paddingLeft:2}}>Enter to send · Shift+Enter for new line</div>
-      </div>
+      </div>}
       <style>{`@keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}`}</style>
     </div>
   );
