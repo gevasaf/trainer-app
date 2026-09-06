@@ -4,6 +4,7 @@ import { CLR, fmtDate } from "../lib/utils";
 import { TimelineTab } from "./TimelineTab";
 import { AssistantTab } from "./AssistantTab";
 import { LogTab } from "./LogTab";
+import { JourneyParamsBody } from "./JourneyParams";
 
 const noop = () => {};
 
@@ -27,7 +28,7 @@ export function JourneyView({ journey, t, lang, toggleLang, onBack }) {
   const name = journey.name || (data.profile && data.profile.name) || "";
   const range = journeyRange(journey, lang);
 
-  const tabs = [t.timeline, t.log, t.assistant];
+  const tabs = [t.details, t.timeline, t.log, t.assistant];
 
   return (
     <div style={{ height: "100dvh", background: CLR.bg, color: CLR.text, fontFamily: "system-ui,sans-serif", direction: t.dir, display: "flex", flexDirection: "column", alignItems: "center", overflow: "hidden" }}>
@@ -54,9 +55,10 @@ export function JourneyView({ journey, t, lang, toggleLang, onBack }) {
 
       {/* Content */}
       <div style={{ width: "100%", maxWidth: 680, flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-        {tab === 0 && <TimelineTab t={t} appData={data} bodyPoints={bodyPoints} setBodyPoints={noop} onMeasurement={noop} lang={lang} deleteBodyPoint={noop} readOnly />}
-        {tab === 1 && <LogTab t={t} entries={entries} bodyPoints={bodyPoints} profile={data.profile} deleteEntry={noop} deleteBodyPoint={noop} readOnly />}
-        {tab === 2 && <AssistantTab t={t} appData={data} entries={entries} bodyPoints={bodyPoints} chatHistory={chatHistory} setChatHistory={noop} unreadCount={0} setUnreadCount={noop} lang={lang} status={null} setStatus={noop} readOnly />}
+        {tab === 0 && <div style={{ flex: 1, overflowY: "auto" }}><JourneyParamsBody t={t} lang={lang} appData={data} /></div>}
+        {tab === 1 && <TimelineTab t={t} appData={data} bodyPoints={bodyPoints} setBodyPoints={noop} onMeasurement={noop} lang={lang} deleteBodyPoint={noop} readOnly />}
+        {tab === 2 && <LogTab t={t} entries={entries} bodyPoints={bodyPoints} profile={data.profile} deleteEntry={noop} deleteBodyPoint={noop} readOnly />}
+        {tab === 3 && <AssistantTab t={t} appData={data} entries={entries} bodyPoints={bodyPoints} chatHistory={chatHistory} setChatHistory={noop} unreadCount={0} setUnreadCount={noop} lang={lang} status={null} setStatus={noop} readOnly />}
       </div>
     </div>
   );
